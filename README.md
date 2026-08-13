@@ -1,4 +1,4 @@
-# Three-Factor-Results-Writer
+# Multi-Factor-Results-Writer
 
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
@@ -27,10 +27,10 @@
 ## 获取
 
 ```bash
-git clone https://github.com/xiaojjo/Three-Factor-Results-Writer.git
+git clone https://github.com/xiaojjo/multi-factor-results-writer.git
 ```
 
-或从 [Releases](https://github.com/xiaojjo/Three-Factor-Results-Writer/releases) 下载压缩包。
+或从 [Releases](https://github.com/xiaojjo/multi-factor-results-writer/releases) 下载压缩包。
 
 ## 使用方式
 
