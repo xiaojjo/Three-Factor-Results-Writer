@@ -1,27 +1,31 @@
 # -*- coding: utf-8 -*-
 """
-md2docx.py — 零依赖 Markdown → Word(.docx) 转换器
+md2docx.py — Zero-dependency Markdown → Word(.docx) converter
 ====================================================================
-用法：
-    python md2docx.py 输入.md [输出.docx]
+Usage:
+    python md2docx.py input.md [output.docx]
 
-    不写输出路径时，自动生成与输入同名的 .docx（如 论文.md -> 论文.docx）。
+    If output path is omitted, a .docx with the same name as the input is
+    generated automatically (e.g., paper.md -> paper.docx).
 
-支持的 Markdown：
-    标题(# ~ ######)、段落、**粗体**、*斜体*、`行内代码`、代码块(```)、
-    有序/无序列表、表格(管道语法)、引用(>)、分隔线(---)。
+Supported Markdown:
+    Headings (# ~ ######), paragraphs, **bold**, *italic*, `inline code`,
+    code blocks (```), ordered/unordered lists, tables (pipe syntax),
+    blockquotes (>), horizontal rules (---).
 
-固化的排版规范（沿用 typeset7.py，与期刊投稿格式一致）：
-    正文   ：中文宋体 + 西文 Times New Roman，12pt，两端对齐，1.5 倍行距，
-             段前段后 6pt。
-    标题   ：中文黑体 + 西文 Times New Roman，加粗，
-             H1=16pt H2=14pt H3=13pt H4~H6=12pt，左对齐。
-    页面   ：A4，四边页边距 2.54cm。
-    斜体   ：md 中的 *xxx* 保留为 Word 斜体（用于统计符号 F / P / χ² 等）。
-    表格   ：细实线网格边框，表头加粗，单元格 10.5pt。
-    代码块 ：Consolas 10.5pt，逐行保留。
+Fixed typography rules (inherited from typeset7.py, consistent with
+journal submission format):
+    Body    : Chinese SimSun + Latin Times New Roman, 12pt, justified,
+              1.5 line spacing, 6pt space before/after.
+    Headings: Chinese SimHei + Latin Times New Roman, bold,
+              H1=16pt H2=14pt H3=13pt H4~H6=12pt, left-aligned.
+    Page    : A4, 2.54cm margins on all sides.
+    Italic  : *xxx* in md is preserved as Word italic (for statistical
+              symbols F / P / chi-squared, etc.).
+    Tables  : thin solid grid borders, bold header, 10.5pt cells.
+    Code    : Consolas 10.5pt, line-by-line preserved.
 
-依赖：无（仅 Python 3.8+ 标准库）。
+Dependencies: none (Python 3.8+ standard library only).
 ====================================================================
 """
 import sys
@@ -29,23 +33,23 @@ import io
 import re
 import zipfile
 
-# ------------------------------------------------------------------ 常量
-BODY_CN, BODY_EN = "SimSun", "Times New Roman"      # 正文中文字体 / 西文字体
-HEAD_CN, HEAD_EN = "SimHei", "Times New Roman"      # 标题中文字体 / 西文字体
+# ------------------------------------------------------------------ constants
+BODY_CN, BODY_EN = "SimSun", "Times New Roman"      # body Chinese font / Latin font
+HEAD_CN, HEAD_EN = "SimHei", "Times New Roman"      # heading Chinese font / Latin font
 CODE_EN = "Consolas"
 BODY_SIZE = 12
 HEAD_SIZE = {1: 16, 2: 14, 3: 13, 4: 12, 5: 12, 6: 12}
 MARGIN_TWIPS = 1440          # 2.54cm = 1440 twips (1 inch = 1440 twips)
 A4_W, A4_H = 11906, 16838    # A4 in twips
 LIST_INDENT = 420            # 0.74cm
-LIST_HANG = -300             # 悬挂缩进
-LINE_15 = 360                # 1.5 倍行距 = 240 * 1.5
+LIST_HANG = -300             # hanging indent
+LINE_15 = 360                # 1.5x line spacing = 240 * 1.5
 SPACE_6 = 120               # 6pt
 
 
-# ------------------------------------------------------------------ XML 工具
+# ------------------------------------------------------------------ XML utils
 def esc(s):
-    """转义 XML 文本中的保留字符。"""
+    """Escape reserved characters in XML text."""
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 
@@ -53,13 +57,13 @@ def xml_decl():
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 
 
-# ------------------------------------------------------------------ 内联解析
-# 匹配 **粗体** / *斜体* / `行内代码`
+# ------------------------------------------------------------------ inline parsing
+# Match **bold** / *italic* / `inline code`
 _INLINE_RE = re.compile(r'\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`')
 
 
 def parse_inline(s):
-    """把一段文本拆成 (text, bold, italic, code) 元组列表。"""
+    """Split a text span into a list of (text, bold, italic, code) tuples."""
     runs = []
     last = 0
     for m in _INLINE_RE.finditer(s):
@@ -79,7 +83,7 @@ def parse_inline(s):
 
 def run_xml(content, bold=False, italic=False, code=False,
             cn=BODY_CN, en=BODY_EN, sz=BODY_SIZE):
-    """生成单个 <w:r> 片段。"""
+    """Generate a single <w:r> fragment."""
     if code:
         en = CODE_EN
         sz = 10.5
@@ -97,7 +101,7 @@ def run_xml(content, bold=False, italic=False, code=False,
 
 def runs_for(text, base_bold=False, base_italic=False,
              cn=BODY_CN, en=BODY_EN, sz=BODY_SIZE):
-    """把一段文本（可能含 **/*/` 标记）转成 runs 的 XML 拼接。"""
+    """Convert a text span (possibly containing **/*/` markers) into concatenated run XML."""
     out = []
     for (t, b, it, c) in parse_inline(text):
         if t == '':
@@ -109,7 +113,7 @@ def runs_for(text, base_bold=False, base_italic=False,
 
 def para_xml(runs_xml, align='both', sb=SPACE_6, sa=SPACE_6, line=LINE_15,
              indent=None, first_line=None):
-    """生成 <w:p> 段落。"""
+    """Generate a <w:p> paragraph."""
     ppr = ['<w:pPr>']
     ppr.append(f'<w:jc w:val="{align}"/>')
     if indent is not None:
@@ -121,7 +125,7 @@ def para_xml(runs_xml, align='both', sb=SPACE_6, sa=SPACE_6, line=LINE_15,
     return f'<w:p>{"".join(ppr)}{runs_xml}</w:p>'
 
 
-# ------------------------------------------------------------------ 块级渲染
+# ------------------------------------------------------------------ block rendering
 def render_heading(content, level):
     sz = HEAD_SIZE.get(level, 12)
     runs = runs_for(content, base_bold=True, cn=HEAD_CN, en=HEAD_EN, sz=sz)
@@ -164,7 +168,7 @@ def render_list_item(content, ordered, counter):
 
 
 def render_table(rows):
-    """rows: list[list[str]]，首行为表头。"""
+    """rows: list[list[str]], first row is the header."""
     if not rows:
         return ''
     ncols = max(len(r) for r in rows)
@@ -197,7 +201,7 @@ def render_table(rows):
     return f'<w:tbl>{tblpr}{grid}{"".join(trs)}</w:tbl>'
 
 
-# ------------------------------------------------------------------ 主解析
+# ------------------------------------------------------------------ main parsing
 _LIST_RE = re.compile(r'^(\s*)([-*+]|\d+[\.\)])\s+(.*)$')
 _SEP_RE = re.compile(r'^\s*\|?[\s:\-|]+\|?\s*$')
 
@@ -227,18 +231,18 @@ def convert(md_text):
         line = lines[i]
         stripped = line.strip()
 
-        # 代码块
+        # code block
         if stripped.startswith('```'):
             i += 1
             code_lines = []
             while i < n and not lines[i].strip().startswith('```'):
                 code_lines.append(lines[i])
                 i += 1
-            i += 1  # 跳过结束 ```
+            i += 1  # skip closing ```
             blocks.append(render_code_block('\n'.join(code_lines)))
             continue
 
-        # 标题
+        # heading
         if stripped.startswith('#'):
             level = len(stripped) - len(stripped.lstrip('#'))
             level = max(1, min(6, level))
@@ -247,7 +251,7 @@ def convert(md_text):
             i += 1
             continue
 
-        # 引用
+        # blockquote
         if stripped.startswith('>'):
             q_lines = []
             while i < n and lines[i].strip().startswith('>'):
@@ -256,13 +260,13 @@ def convert(md_text):
             blocks.append(render_quote(' '.join(q_lines)))
             continue
 
-        # 分隔线
+        # horizontal rule
         if stripped in ('---', '***', '___'):
             blocks.append(render_hr())
             i += 1
             continue
 
-        # 表格（当前行含 | 且下一行是分隔行）
+        # table (current line contains | and the next line is a separator row)
         if '|' in stripped and i + 1 < n and '-' in lines[i + 1] \
                 and _SEP_RE.match(lines[i + 1].strip()):
             header = [c.strip() for c in stripped.strip().strip('|').split('|')]
@@ -277,7 +281,7 @@ def convert(md_text):
             blocks.append(render_table(rows))
             continue
 
-        # 列表
+        # list
         if _LIST_RE.match(stripped):
             items = []
             while i < n:
@@ -303,7 +307,7 @@ def convert(md_text):
                 blocks.append(render_list_item(content, ordered, num))
             continue
 
-        # 普通段落（聚合连续非空白、非特殊行）
+        # plain paragraph (aggregate consecutive non-blank, non-special lines)
         if stripped != '':
             para_parts = []
             while i < n:
@@ -315,10 +319,10 @@ def convert(md_text):
             blocks.append(render_paragraph(' '.join(para_parts)))
             continue
 
-        # 空白行
+        # blank line
         i += 1
 
-    # 组装 document.xml
+    # assemble document.xml
     sect = ('<w:sectPr>'
             f'<w:pgSz w:w="{A4_W}" w:h="{A4_H}"/>'
             f'<w:pgMar w:top="{MARGIN_TWIPS}" w:right="{MARGIN_TWIPS}" '
@@ -331,7 +335,7 @@ def convert(md_text):
             f'{body}</w:document>')
 
 
-# ------------------------------------------------------------------ 打包 docx
+# ------------------------------------------------------------------ package docx
 def build_docx(document_xml, dst):
     content_types = (xml_decl() +
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
@@ -352,13 +356,13 @@ def build_docx(document_xml, dst):
         z.writestr('word/document.xml', document_xml)
 
 
-# ------------------------------------------------------------------ 入口
+# ------------------------------------------------------------------ entry point
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
     src = sys.argv[1]
-    # utf-8-sig 自动剥离 BOM，避免开头 # 标题被破坏
+    # utf-8-sig automatically strips the BOM, preventing corruption of leading # headings
     with io.open(src, encoding='utf-8-sig') as f:
         md_text = f.read()
     if len(sys.argv) >= 3:
@@ -367,7 +371,7 @@ def main():
         dst = re.sub(r'\.md$', '.docx', src, flags=re.I)
     document_xml = convert(md_text)
     build_docx(document_xml, dst)
-    print(f"✓ 已转换：{src} -> {dst}")
+    print(f"Converted: {src} -> {dst}")
 
 
 if __name__ == '__main__':
