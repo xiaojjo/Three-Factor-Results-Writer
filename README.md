@@ -1,10 +1,43 @@
 # three-factor-results-writer
 
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+
 > 三因素（2×2×2 完全析因）试验结果段落写作技能，把统计输出逐指标写成符合生态学期刊规范的结果段落，并一键导出 Word。
 
 ## 它解决什么问题
 
 写三因素析因试验的 Results 段落时，常见痛点：三阶交互怎么拆方向、两两比较 P 和 ANOVA P 混淆、百分比口径不统一、统计符号格式混乱、写完 Markdown 还要手动排版 Word。本技能用一套决策树 + 风格规范 + 零依赖转换器一次性解决。
+
+## 安装
+
+### 方式一：克隆到 WorkBuddy 技能目录（推荐）
+
+```bash
+git clone https://github.com/xiaojjo/Three-Factor-Results-Writer.git ~/.workbuddy/skills/three-factor-results-writer
+```
+
+克隆后重启 WorkBuddy，技能自动加载。
+
+### 方式二：手动下载
+
+1. 从 [Releases](https://github.com/xiaojjo/Three-Factor-Results-Writer/releases) 下载压缩包
+2. 解压到 `~/.workbuddy/skills/three-factor-results-writer/`
+3. 确保目录结构如下（`SKILL.md` 在根目录）：
+
+```
+~/.workbuddy/skills/three-factor-results-writer/
+├── SKILL.md
+├── references/
+│   └── decision_tree.json
+└── scripts/
+    └── md2docx.py
+```
+
+### 环境要求
+
+- [WorkBuddy](https://www.workbuddy.cn) 智能体平台
+- Python 3.8+（仅 `md2docx.py` 需要，技能本身不需要）
+- R + `emmeans` 包（计算边际均值时需要，技能本身不需要）
 
 ## 适用范围
 
