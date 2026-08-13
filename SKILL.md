@@ -111,7 +111,8 @@ If some direction has > 25 layers, prompt the user to report first the 3–5 lay
 | 2 | **Interaction symbol** | Factor multiplication uniformly uses the space-free multiplication sign `×`: `F1×F2×F3`. Space-containing forms are prohibited. |
 | 3 | **Pairwise-comparison label** | Uniformly post-positioned: `P = [value], pairwise comparison`. ANOVA main-effect P is not labeled "pairwise comparison"; the two MUST be distinguished. |
 | 4 | **Factor naming** | Use "factor name + specific level value/name" (e.g., "temperature 30 ℃", "moisture normal"), prohibiting relative words like "high temperature" / "control". |
-| 5 | **Decomposition layout** | Trend analysis uses continuous paragraphs, no unordered bullet lists; leave a blank line between the statistics / trend / effect three segments. |
+|| 5 | **Decomposition layout** | Trend analysis uses continuous paragraphs, no unordered bullet lists; leave a blank line between the statistics / trend / effect three segments. |
+|| 6 | **Anti-fragmentation (mandatory)** | No markdown lists (bullets or numbered) in trend-analysis output; no `###` sub-headings for each direction — use bold lead-in phrases instead. All statistics must be fused into coherent natural paragraphs separated only by blank lines. |
 | 6 | **Model declaration** | Model type and random factors are declared once centrally at the beginning of the results section; within each indicator section only test statistics and P values are reported. |
 | 7 | **Percentage dual-report** | First write the change amount "increased/decreased by X.XX", then write "(+/-X.XX%, *P* = …, pairwise comparison)". |
 | 8 | **Figure numbers** | Draft "Figure [to be added]"; replace uniformly in the final version; do not mix sub-figure numbers and whole-figure numbers without explanation. |
@@ -227,6 +228,58 @@ flowchart TD
 
 ---
 
+## V-b. Mandatory Two-Step Output Protocol
+
+> **[MANDATORY]** To prevent numerical-calculation errors and formatting fragmentation, the AI MUST execute these two steps in order before delivering any results paragraph.
+
+### Step 1 — Draft Table (internal scratch)
+Generate a Markdown comparison table containing **every directional contrast** before writing prose:
+
+| Direction | Fixed conditions | Contrast (L_K vs L_1) | L_1 mean ± SE | L_K mean ± SE | Absolute diff | % change | *P* value |
+|-----------|------------------|-----------------------|---------------|---------------|---------------|----------|-----------|
+| e.g., D1 | B = Level_1 | A3 vs A1 | X.XX ± X.XX | Y.YY ± Y.YY | D.DD | +P.PP% | < 0.001 |
+
+- For K > 2 factors, add columns for intermediate levels / peak-detection rows as needed.
+- If peak detection triggers, add a dedicated row for the peak level.
+- This table is **for internal verification only** — do NOT emit it to the user.
+
+### Step 2 — Final Text (paragraph-only output)
+Using **only** the draft table as source, write the final results paragraph following the `output_blueprint` below. During this step:
+
+- ❌ No markdown tables, lists, or inline code in the final output.
+- ❌ No `### Direction 1:` sub-headings. Use a bold lead-in phrase instead: **方向1（固定 B，边际化 C，比较 A；A3 较 A1 变化）：**
+- ✅ All statistics fused into flowing natural paragraphs.
+- ✅ Blank lines separate only the four blueprint paragraphs (stats / direction-1 / directions-2+3 / interpretation).
+
+---
+
+## V-c. Output Blueprint (four-paragraph structure)
+
+The final paragraph MUST follow this exact four-paragraph skeleton (paragraphs separated by one blank line):
+
+```
+**【响应变量名称】（【显著交互/主效应概括】）**
+
+[Paragraph 1 — statistical declaration]
+三因素【模型类型】的 Type III 检验中，[最高阶交互结果]，[次高阶交互结果]，[主效应结果]（图【图号】）。
+
+**方向1（固定【其余因素】，边际化【无关因素】，比较【当前因素】；【Level_K】较【Level_1】变化）：**
+[Paragraph 2 — Direction-1 trend: all layers fused into one continuous paragraph, no sub-headings.]
+
+**方向2（固定【其余因素】，边际化【无关因素】，比较【当前因素】；【Level_K】较【Level_1】变化）：**
+[Paragraph 3 — Direction-2 + any additional independent main effects, fused.]
+
+[Paragraph 4 — effect interpretation]
+[交互对比结果及 *P* 值]。因【交互项】显著，【涉及主效应】不作独立解释；【未参与交互且显著的主效应】可作独立解释。
+```
+
+**Notes:**
+- For R3 (main effects only), paragraphs 2–3 each cover one factor's trend.
+- For R1 (highest-order interaction), all directions are fused across paragraphs 2–3; paragraph 4 declares all main effects non-independent.
+- Paragraph 4 is omitted only when all effects are non-significant (R4).
+
+---
+
 ## VII. R Code Templates
 
 ```r
@@ -285,17 +338,17 @@ contrast(emm, interaction = 'pairwise', adjust = 'tukey')
 ---
 ## IX. Style Example
 
->**Second instar duration (developmental temperature × background temperature two-way interaction significant; pesticide background main effect significant)**
+>**第二龄期历期（发育温度 × 背景温度二阶交互显著；农药背景主效应显著）**
 >
->In the Type III test of the three-factor linear model, the three-way interaction was not significant (*F*₂,₄₄₅ = [F-value], *P* = [P-value]), only the developmental temperature × background temperature two-way interaction was significant (*F*₂,₄₄₅ = [F-value], *P* = [P-value]), while developmental temperature × pesticide background (*F*₂,₄₄₅ = [F-value], *P* = [P-value]) and background temperature × pesticide background (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) were not significant; the main effects of developmental temperature (*F*₂,₄₄₅ = [F-value], *P* = [P-value]) and background temperature (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) were not significant, but the main effect of pesticide background was significant (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) (Figure [figure number]).
+>三因素线性模型的 Type III 检验中，三阶交互不显著（*F*₂,₄₄₅ = [F-value], *P* = [P-value]），仅发育温度 × 背景温度二阶交互显著（*F*₂,₄₄₅ = [F-value], *P* = [P-value]），而发育温度 × 农药背景（*F*₂,₄₄₅ = [F-value], *P* = [P-value]）与背景温度 × 农药背景（*F*₁,₄₄₅ = [F-value], *P* = [P-value]）均不显著；发育温度（*F*₂,₄₄₅ = [F-value], *P* = [P-value]）与背景温度（*F*₁,₄₄₅ = [F-value], *P* = [P-value]）主效应亦不显著，但农药背景主效应显著（*F*₁,₄₄₅ = [F-value], *P* = [P-value]）（图【图号】）。
 >
->Direction 1 (fixed background temperature, marginalizing over pesticide background, comparing developmental temperature; developmental temperature 27 ℃ vs 22 ℃): At background temperature 15 ℃, the second instar duration of the developmental temperature 27 ℃ group was [X.XX ± X.XX] d, which did not differ significantly from the developmental temperature 22 ℃ group ([X.XX ± X.XX] d) (*P* = [P-value], pairwise comparison); however, the developmental temperature 25 ℃ group ([X.XX ± X.XX] d) increased by [X.XX] relative to the developmental temperature 22 ℃ group (+[X.XX]%, *P* = [P-value], pairwise comparison), and increased by [X.XX] relative to the developmental temperature 27 ℃ group (+[X.XX]%, *P* = [P-value], pairwise comparison), overall showing an initial increase followed by a decrease (unimodal pattern). At background temperature 25 ℃, the developmental temperature 27 ℃ group ([X.XX ± X.XX] d) increased by [X.XX] relative to the developmental temperature 22 ℃ group ([X.XX ± X.XX] d) (+[X.XX]%, *P* = [P-value], pairwise comparison); the developmental temperature 25 ℃ group ([X.XX ± X.XX] d) increased by [X.XX] relative to the developmental temperature 22 ℃ group (+[X.XX]%, *P* = [P-value], pairwise comparison), and did not differ significantly from the developmental temperature 27 ℃ group (*P* = [P-value], pairwise comparison), showing a plateau trend after continuous increase.
+>**方向1（固定背景温度，边际化农药背景，比较发育温度；发育温度 27 ℃ 较 22 ℃ 变化）：**在背景温度 15 ℃ 下，发育温度 27 ℃ 组第二龄期历期为 [X.XX ± X.XX] d，与发育温度 22 ℃ 组（[X.XX ± X.XX] d）差异不显著（*P* = [P-value]，两两比较）；但发育温度 25 ℃ 组（[X.XX ± X.XX] d）较 22 ℃ 升高 [X.XX]（+[X.XX]%, *P* = [P-value]，两两比较），较 27 ℃ 升高 [X.XX]（+[X.XX]%, *P* = [P-value]，两两比较），整体呈先升后降的单峰趋势。在背景温度 25 ℃ 下，发育温度 27 ℃ 组（[X.XX ± X.XX] d）较 22 ℃ 组（[X.XX ± X.XX] d）升高 [X.XX]（+[X.XX]%, *P* = [P-value]，两两比较）；发育温度 25 ℃ 组（[X.XX ± X.XX] d）较 22 ℃ 升高 [X.XX]（+[X.XX]%, *P* = [P-value]，两两比较），与 27 ℃ 组差异不显著（*P* = [P-value]，两两比较），显示持续上升后 plateau。
 >
->Direction 2 (fixed developmental temperature, marginalizing over pesticide background, comparing background temperature; background temperature 25 ℃ vs 15 ℃): At developmental temperature 22 ℃, the background temperature 25 ℃ group had a second instar duration of [X.XX ± X.XX] d, which increased/decreased by [X.XX] relative to the background temperature 15 ℃ group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison); at developmental temperature 25 ℃, the background temperature 25 ℃ group was [X.XX ± X.XX] d, which increased/decreased by [X.XX] relative to the background temperature 15 ℃ group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison); at developmental temperature 27 ℃, the background temperature 25 ℃ group was [X.XX ± X.XX] d, which increased/decreased by [X.XX] relative to the background temperature 15 ℃ group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison).
+>**方向2（固定发育温度，边际化农药背景，比较背景温度；背景温度 25 ℃ 较 15 ℃ 变化）：**在发育温度 22 ℃ 下，背景温度 25 ℃ 组第二龄期历期为 [X.XX ± X.XX] d，较 15 ℃ 组（[X.XX ± X.XX] d）升高/降低 [X.XX]（+/-[X.XX]%, *P* = [P-value]，两两比较）；在发育温度 25 ℃ 下，25 ℃ 组为 [X.XX ± X.XX] d，较 15 ℃ 组升高/降低 [X.XX]（+/-[X.XX]%, *P* = [P-value]，两两比较）；在发育温度 27 ℃ 下，25 ℃ 组为 [X.XX ± X.XX] d，较 15 ℃ 组升高/降低 [X.XX]（+/-[X.XX]%, *P* = [P-value]，两两比较）。
 >
->Direction 3 (marginalizing over developmental temperature and background temperature, comparing pesticide background; with pesticide vs without pesticide): The with-pesticide group had a second instar duration of [X.XX ± X.XX] d (marginal mean), which increased/decreased by [X.XX] relative to the without-pesticide group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison).
+>**方向3（边际化发育温度与背景温度，比较农药背景；有农药 vs 无农药）：**有农药组第二龄期历期为 [X.XX ± X.XX] d（边际均值），较无农药组（[X.XX ± X.XX] d）升高/降低 [X.XX]（+/-[X.XX]%, *P* = [P-value]，两两比较）。
 >
->The developmental temperature × background temperature interaction contrast indicated that the effect of developmental temperature differed significantly between background temperature 15 ℃ and 25 ℃ (*P* = [P-value], pairwise comparison). Because the developmental temperature × background temperature two-way interaction was significant, the main effects of developmental temperature and background temperature were not interpreted independently; because pesticide background did not participate in any significant interaction and its main effect was significant, its effect was independent of developmental temperature and background temperature and could be interpreted independently.
+>发育温度 × 背景温度交互对比表明，发育温度的效应在背景温度 15 ℃ 与 25 ℃ 间差异显著（*P* = [P-value]，两两比较）。因发育温度 × 背景温度二阶交互显著，二者主效应不作独立解释；农药背景未参与任何显著交互且主效应显著，其效应独立于发育温度与背景温度，可独立解释。
 ---
 
 ## X. Attached Scripts
