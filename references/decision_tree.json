@@ -2,7 +2,6 @@
   "name": "Multi-Factor Experimental Results Writing Decision Tree (General Edition)",
   "version": "8.6",
   "description": "Designed to guide AI in generating results paragraphs that conform to classical ecological journal standards, based on statistical results from completely factorial experiments. Core algorithms include multi-level trend description (with non-monotonic trend detection and peak emphasis), mandatory EMMs ± SE reporting, unit/quantifier adaptation, interaction significance routing, and GLMM response-scale difference extraction mechanisms.",
-
   "core_disciplines": [
     "⚠️ When an interaction is significant, the main effects it involves shall not be interpreted independently (R1 covers all; R2 covers partially).",
     "⚠️ All means must be EMMs and must be reported with SE (format: X.XX ± X.XX).",
@@ -10,56 +9,57 @@
     "⚠️ When peak detection is triggered for a multi-level factor, the sequential reporting rule is overridden: report only the peak, and summarize the remaining intermediate levels as 'did not reach significant difference'.",
     "⚠️ Factor labels must use the format 'factor name + specific level value' (e.g., 'temperature 25 ℃'); relative terms such as 'high temperature' and 'control' are prohibited."
   ],
-
   "applicable_design": {
     "design_type": "Completely factorial design (crossed design)",
     "factor_count": "Any positive integer (≥ 1), specified by the user; defaults to 1–3, extensible",
     "levels_per_factor": "Any positive integer (≥ 2); factors may have unequal levels",
     "factor_types": "All categorical variables",
-    "model_types": ["One-way ANOVA", "Two-way ANOVA", "Three-way ANOVA", "Linear Mixed Model", "Generalized Linear Mixed Model"],
-    "exclusions": ["Nested design", "Split-plot design", "Continuous variable factors", "Models with covariates"]
+    "model_types": [
+      "One-way ANOVA",
+      "Two-way ANOVA",
+      "Three-way ANOVA",
+      "Linear Mixed Model",
+      "Generalized Linear Mixed Model"
+    ],
+    "exclusions": [
+      "Nested design",
+      "Split-plot design",
+      "Continuous variable factors",
+      "Models with covariates"
+    ]
   },
-
   "input_requirements": [
     "Response variable data (long format: response values, factor level identifiers, random factor identifiers)",
     "Statistical model output (F/χ² values, df, P-values for all main effects and interactions; random factor variance components)",
     "Factor level definitions (name and order for each factor's levels; for unordered categorical variables, a reference level must be specified)",
     "Factor count (factor_count)"
   ],
-
   "global_settings": {
     "trend_analysis_method": "Estimated Marginal Means (EMMs), computed using the R emmeans package or equivalent software",
     "pairwise_adjustment": "Tukey HSD (multiple comparison correction)",
     "language_constraints": "Prohibit discursive language such as 'suggest', 'indicate', 'show', 'reveal', 'imply', 'confirm', 'demonstrate'.",
-
     "formatting_rules": {
       "p_value": "Report to 3 decimal places. If P < 0.001, write as '< 0.001'; if P > 0.99, write as '> 0.99'.",
       "other_values": "All non-P-value statistics (means, differences, percentages, SE, F-values, χ² values, etc.) shall be reported to 2 decimal places.",
       "rounding_method": "Standard rounding (4/5 rounding)"
     },
-
     "percentage_calculation": "Percentage = (difference / reference group mean) × 100, reported to 2 decimal places. For GLM/GLMM back-transformed probabilities, the denominator must be the reference group mean.",
-
     "anova_p_value_source": "Report the P-value from the ANOVA F-test or likelihood ratio test for model fixed effects.",
     "pairwise_p_value_source": "Report the P-value from emmeans pairwise comparisons, explicitly labeled as 'pairwise comparison'.",
-
     "multi_level_universal_algorithm": {
       "description": "Enforced when any factor has more than 2 levels. Core principles: extreme comparison first → intermediate level supplementation → non-monotonic trend detection → layer-wise traversal.",
       "level_ordering": "Factor levels shall be sorted in ascending numerical or logical order; designate Level_1 as the reference (lowest) and Level_K as the highest. For unordered categorical factors, the user specifies the reference level.",
-
       "comparison_selection_algorithm": {
         "if_K_equals_2": "Report Level_2 vs Level_1 (direct two-level comparison).",
         "if_K_greater_than_2": "By default, report only Level_K vs Level_1 as the core finding. Intermediate levels are described in supplementary sentences in sequence. If the peak_detection_rule is triggered, this default order is overridden.",
         "prohibited": "Prohibit reporting all pairwise combinations one by one (e.g., Level_2 vs Level_1, Level_3 vs Level_1, Level_2 vs Level_3)."
       },
-
       "middle_level_supplement_algorithm": {
         "single_middle": "If K=3 and peak detection is not triggered, use the format: '[Level_2 label] ([X.XX ± X.XX] [quantifier]) increased/decreased by [X.XX] relative to Level_1 (+/-[X.XX]%, *P* = [P-value], pairwise comparison), and did not differ significantly from / was significantly lower/higher than Level_K (*P* = [P-value], pairwise comparison).'",
         "multiple_middles": "If K>3 and peak detection is not triggered, report the change relative to Level_1 and the P-value for each intermediate level in sequence from Level_2 → Level_3 → … → Level_{K-1}.",
         "platform_check": "For K>2, before summarizing the trend, the comparison between the highest level and the second-highest level must be reported. Format: '[Level_K label] ([X.XX ± X.XX]) increased/decreased by [X.XX] relative to [Level_{K-1} label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value], pairwise comparison), showing a plateau trend / the trend continues to rise.'",
         "note": "All difference, percentage, and P-values in supplementary sentences are derived from Tukey HSD-corrected pairwise comparisons. EMMs ± SE must be reported in parentheses."
       },
-
       "peak_detection_rule": {
         "description": "Detection mechanism for non-monotonic trends (unimodal, U-shaped). Ecological data often have optimal intermediate points that must not be missed.",
         "trigger_condition": "If the extreme comparison (Level_K vs Level_1) has P > 0.05 (not significant), check whether any intermediate level is significantly higher or lower than both ends.",
@@ -68,7 +68,6 @@
         "effect_size_for_ranking": "When peak detection is triggered, the 'extreme comparison effect size' used for ranking this layer equals max(|Level_i mean - Level_1 mean|, |Level_i mean - Level_K mean|).",
         "trend_summary": "Summarize as 'Overall showing an initial increase followed by a decrease (unimodal pattern) / initial decrease followed by an increase (U-shaped pattern)'."
       },
-
       "performance_safeguard": {
         "max_layers_before_warning": 25,
         "warning_message": "If the number of layers in a direction exceeds 25, prompt the user: 'The number of decomposition layers is large (currently X layers). It is recommended to report only the 3–5 layers with the strongest effects and summarize the rest.'",
@@ -76,69 +75,166 @@
       }
     }
   },
-
   "style_rules": [
-    { "id": 1, "name": "Punctuation", "rule": "Use half-width commas ',' periods '.' and parentheses '()' uniformly. Mixing full-width and half-width punctuation is prohibited." },
-    { "id": 2, "name": "Interaction symbol", "rule": "Use the multiplication sign '×' without spaces between factors: F1×F2, F1×F2×F3. The spaced form 'F1 × F2' is prohibited." },
-    { "id": 3, "name": "Pairwise comparison labeling (post-positioned)", "rule": "Pairwise comparison P-values shall always be written as 'P = [P-value], pairwise comparison', placed after the corresponding comparison. ANOVA main effect P-values are not labeled this way. Pre-positioned forms are prohibited." },
-    { "id": 4, "name": "Factor labels", "rule": "Use the combined format '[factor name] + [specific level value/name]' (e.g., 'temperature 30 ℃', 'normal moisture'). Relative terms such as 'high temperature', 'low temperature', and 'control' are prohibited." },
-    { "id": 5, "name": "Decomposition layout (paragraphs only)", "rule": "Trend analyses in each direction shall be presented as continuous paragraphs. Bullet lists are prohibited. Blank lines shall separate the three sections: statistical analysis / trend analysis / effect statement." },
-    { "id": 6, "name": "Model declaration placement", "rule": "Model type and random factors shall be declared once at the beginning of the Results section. Each indicator paragraph shall report only its own test statistics and P-values." },
-    { "id": 7, "name": "Percentage and difference (dual reporting)", "rule": "Positive direction writes '+X.XX%', negative direction writes '−X.XX%' (half-width minus sign). Each comparison shall state the change amount first, followed by the percentage and P-value." },
-    { "id": 8, "name": "Figure numbers", "rule": "Drafts use the placeholder 'Figure [to be added]'; final versions replace with specific figure numbers." },
-    { "id": 9, "name": "Partial η²", "rule": "Within the same document, all LMM/ANOVA models of the same type shall consistently report partial η² (η²ₚ = X.XX) or consistently not report it. Mixed reporting is prohibited." },
-    { "id": 10, "name": "Internal check markers", "rule": "R1/R2/R3/R4 are used only for writing process decisions and are prohibited from appearing in delivered section titles." },
-    { "id": 11, "name": "Location-scale models", "rule": "The scale component shall be reported as an independent paragraph, using the same model and same Type III tests as the location component." },
-    { "id": 12, "name": "Statistical symbol font (italic/roman)", "rule": "Test statistics symbols shall be italicized: *F*, *P*, *t*, *χ*², *η*², etc. Degrees of freedom (subscript numbers), equal signs, and all numerical values remain roman." },
-    { "id": 13, "name": "Response variable type and quantifier adaptation", "rule": "Continuous variables report physical units (e.g., mg); Binomial distributions report 'X.XX ± X.XX probability' or percentages; Poisson/Negative Binomial report count quantifiers (e.g., times, individuals). Prohibit reporting count data as unitless numbers." },
-    { "id": 14, "name": "Mean variability reporting", "rule": "All means reported in parentheses must be estimated marginal means (EMMs) and must be reported with model standard errors (SE) in the format 'mean ± SE'. Prohibit reporting raw arithmetic means or standard deviations." }
+    {
+      "id": 1,
+      "name": "Punctuation",
+      "rule": "Use half-width commas ',' periods '.' and parentheses '()' uniformly. Mixing full-width and half-width punctuation is prohibited."
+    },
+    {
+      "id": 2,
+      "name": "Interaction symbol",
+      "rule": "Use the multiplication sign '×' without spaces between factors: F1×F2, F1×F2×F3. The spaced form 'F1 × F2' is prohibited."
+    },
+    {
+      "id": 3,
+      "name": "Pairwise comparison labeling (post-positioned)",
+      "rule": "Pairwise comparison P-values shall always be written as 'P = [P-value], pairwise comparison', placed after the corresponding comparison. ANOVA main effect P-values are not labeled this way. Pre-positioned forms are prohibited."
+    },
+    {
+      "id": 4,
+      "name": "Factor labels",
+      "rule": "Use the combined format '[factor name] + [specific level value/name]' (e.g., 'temperature 30 ℃', 'normal moisture'). Relative terms such as 'high temperature', 'low temperature', and 'control' are prohibited."
+    },
+    {
+      "id": 5,
+      "name": "Decomposition layout (paragraphs only)",
+      "rule": "Trend analyses in each direction shall be presented as continuous paragraphs. Bullet lists are prohibited. Blank lines shall separate the three sections: statistical analysis / trend analysis / effect statement."
+    },
+    {
+      "id": 6,
+      "name": "Model declaration placement",
+      "rule": "Model type and random factors shall be declared once at the beginning of the Results section. Each indicator paragraph shall report only its own test statistics and P-values."
+    },
+    {
+      "id": 7,
+      "name": "Percentage and difference (dual reporting)",
+      "rule": "Positive direction writes '+X.XX%', negative direction writes '−X.XX%' (half-width minus sign). Each comparison shall state the change amount first, followed by the percentage and P-value."
+    },
+    {
+      "id": 8,
+      "name": "Figure numbers",
+      "rule": "Drafts use the placeholder 'Figure [to be added]'; final versions replace with specific figure numbers."
+    },
+    {
+      "id": 9,
+      "name": "Partial η²",
+      "rule": "Within the same document, all LMM/ANOVA models of the same type shall consistently report partial η² (η²ₚ = X.XX) or consistently not report it. Mixed reporting is prohibited."
+    },
+    {
+      "id": 10,
+      "name": "Internal check markers",
+      "rule": "R1/R2/R3/R4 are used only for writing process decisions and are prohibited from appearing in delivered section titles."
+    },
+    {
+      "id": 11,
+      "name": "Location-scale models",
+      "rule": "The scale component shall be reported as an independent paragraph, using the same model and same Type III tests as the location component."
+    },
+    {
+      "id": 12,
+      "name": "Statistical symbol font (italic/roman)",
+      "rule": "Test statistics symbols shall be italicized: *F*, *P*, *t*, *χ*², *η*², etc. Degrees of freedom (subscript numbers), equal signs, and all numerical values remain roman."
+    },
+    {
+      "id": 13,
+      "name": "Response variable type and quantifier adaptation",
+      "rule": "Continuous variables report physical units (e.g., mg); Binomial distributions report 'X.XX ± X.XX probability' or percentages; Poisson/Negative Binomial report count quantifiers (e.g., times, individuals). Prohibit reporting count data as unitless numbers."
+    },
+    {
+      "id": 14,
+      "name": "Mean variability reporting",
+      "rule": "All means reported in parentheses must be estimated marginal means (EMMs) and must be reported with model standard errors (SE) in the format 'mean ± SE'. Prohibit reporting raw arithmetic means or standard deviations."
+    }
   ],
-
   "phase_0_level_mapping_preprocessing": {
     "mandatory": true,
     "steps": [
-      { "step": 1, "action": "Create an ordered mapping table for each factor based on the user's level definitions. If levels have a natural order, sort ascending; if unordered, the user specifies a reference level as Level_1. Example: F1 = {1:'15℃', 2:'20℃', 3:'25℃'}." },
-      { "step": 2, "action": "Determine the number of levels K_F1, K_F2, ... for each factor and store them." },
-      { "step": 3, "action": "If any K > 2, mark as 'multi-level mode' and activate multi_level_universal_algorithm (including extreme comparison, plateau check, and non-monotonic peak detection). If all K = 2, use traditional two-level direct comparison logic." },
-      { "step": 4, "action": "Determine factor_count and generate the complete list of possible interaction terms (e.g., for factor_count=3: F1×F2, F1×F3, F2×F3, F1×F2×F3)." },
-      { "step": 5, "action": "Implicitly carry the mapping tables and interaction information into the writing process; ensure every comparison value can be traced back to its corresponding level." },
-      { "step": 6, "action": "In the final text, every level label must use the complete format '[factor name] + [specific level value/name]' (e.g., 'temperature 15 ℃' rather than 'low temperature' or 'lowest level')." }
+      {
+        "step": 1,
+        "action": "Create an ordered mapping table for each factor based on the user's level definitions. If levels have a natural order, sort ascending; if unordered, the user specifies a reference level as Level_1. Example: F1 = {1:'15℃', 2:'20℃', 3:'25℃'}."
+      },
+      {
+        "step": 2,
+        "action": "Determine the number of levels K_F1, K_F2, ... for each factor and store them."
+      },
+      {
+        "step": 3,
+        "action": "If any K > 2, mark as 'multi-level mode' and activate multi_level_universal_algorithm (including extreme comparison, plateau check, and non-monotonic peak detection). If all K = 2, use traditional two-level direct comparison logic."
+      },
+      {
+        "step": 4,
+        "action": "Determine factor_count and generate the complete list of possible interaction terms (e.g., for factor_count=3: F1×F2, F1×F3, F2×F3, F1×F2×F3)."
+      },
+      {
+        "step": 5,
+        "action": "Implicitly carry the mapping tables and interaction information into the writing process; ensure every comparison value can be traced back to its corresponding level."
+      },
+      {
+        "step": 6,
+        "action": "In the final text, every level label must use the complete format '[factor name] + [specific level value/name]' (e.g., 'temperature 15 ℃' rather than 'low temperature' or 'lowest level')."
+      }
     ]
   },
-
   "phase_1_indicator_ordering": {
     "rules": [
-      { "rank": 1, "condition": "Highest-order interaction (order = factor_count) has P < 0.05", "action": "Place first in this paragraph as the core finding" },
-      { "rank": 2, "condition": "Highest-order interaction not significant, but at least one lower-order interaction has P < 0.05", "action": "Place after highest-order interaction indicators" },
-      { "rank": 3, "condition": "All interactions not significant, but at least one main effect has P < 0.05", "action": "Place last" },
-      { "rank": 4, "condition": "All main effects and interactions have P ≥ 0.05, or model degradation", "action": "Place at the end as supplementary description" }
+      {
+        "rank": 1,
+        "condition": "Highest-order interaction (order = factor_count) has P < 0.05",
+        "action": "Place first in this paragraph as the core finding"
+      },
+      {
+        "rank": 2,
+        "condition": "Highest-order interaction not significant, but at least one lower-order interaction has P < 0.05",
+        "action": "Place after highest-order interaction indicators"
+      },
+      {
+        "rank": 3,
+        "condition": "All interactions not significant, but at least one main effect has P < 0.05",
+        "action": "Place last"
+      },
+      {
+        "rank": 4,
+        "condition": "All main effects and interactions have P ≥ 0.05, or model degradation",
+        "action": "Place at the end as supplementary description"
+      }
     ]
   },
-
   "phase_2_single_indicator_writing": {
     "layout_discipline": "⚠️ All trend analysis content must be rendered as continuous paragraphs. All 'P = [P-value], pairwise comparison' must follow the post-positioned format.",
-
     "routing_algorithm": {
       "steps": [
-        { "step": 1, "action": "If factor_count = 1, skip all interaction checks and go directly to R3 (main effects only)." },
-        { "step": 2, "action": "If the highest-order interaction has P < 0.05, go to R1 (highest-order interaction significant)." },
-        { "step": 3, "action": "If the highest-order interaction is not significant but at least one lower-order interaction has P < 0.05, go to R2 (lower-order interaction significant)." },
-        { "step": 4, "action": "If all interactions are not significant but at least one main effect has P < 0.05, go to R3 (main effects only)." },
-        { "step": 5, "action": "If none are significant or model degradation, go to R4." }
+        {
+          "step": 1,
+          "action": "If factor_count = 1, skip all interaction checks and go directly to R3 (main effects only)."
+        },
+        {
+          "step": 2,
+          "action": "If the highest-order interaction has P < 0.05, go to R1 (highest-order interaction significant)."
+        },
+        {
+          "step": 3,
+          "action": "If the highest-order interaction is not significant but at least one lower-order interaction has P < 0.05, go to R2 (lower-order interaction significant)."
+        },
+        {
+          "step": 4,
+          "action": "If all interactions are not significant but at least one main effect has P < 0.05, go to R3 (main effects only)."
+        },
+        {
+          "step": 5,
+          "action": "If none are significant or model degradation, go to R4."
+        }
       ]
     },
-
     "cases": [
       {
         "case_id": "R1",
         "name": "Highest-order interaction significant",
         "condition": "The highest-order interaction term (order = factor_count) has ANOVA P < 0.05. Example for three factors: F1×F2×F3.",
-
         "statistical_analysis": {
           "template_algorithm": "⚠️ Report the F/χ², df, and P-value for this highest-order interaction. Report the F/χ², df, and P-value for all main effects individually (regardless of significance; numerical values must be reported). Report the F/χ², df, and P-values for all lower-order interactions (as observed). For mixed models, report random factor variance components.",
           "note": "A significant highest-order interaction does not imply that main effects are necessarily non-significant; both can be significant simultaneously. Always report based on actual test results."
         },
-
         "trend_analysis": {
           "description": "When an interaction involves k factors, decompose into k directions. For each direction, hold the other k−1 factors fixed and examine the current factor. All directions must be reported.",
           "direction_algorithm": {
@@ -149,7 +245,10 @@
               "per_layer_action": "Extract the difference, percentage, and P-value for F1_Level_K vs F1_Level_1; if K_F1 > 2, execute middle_level_supplement_algorithm and peak_detection_rule.",
               "example_syntax": "Holding [F2 actual label] [F3 actual label] fixed, [F1_Level_K complete label] ([X.XX ± X.XX] [quantifier]) increased/decreased by [X.XX] relative to [F1_Level_1 complete label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value]); [intermediate level supplementation if applicable]. Layers are separated by semicolons."
             },
-            "direction2": { "name": "Hold other factors fixed, examine F2", "per_layer_action": "Same as direction1, substituting F2 as the subject." },
+            "direction2": {
+              "name": "Hold other factors fixed, examine F2",
+              "per_layer_action": "Same as direction1, substituting F2 as the subject."
+            },
             "directionN": "Continue similarly for each factor participating in the interaction."
           },
           "interaction_contrast": {
@@ -158,22 +257,17 @@
             "example_syntax": "The effect of [factor 1] differed significantly / did not differ significantly across levels of [factor 2] (*P* = [P-value], pairwise comparison)."
           }
         },
-
         "effect_statement": "⚠️ Because the highest-order interaction is significant, no main effects or lower-order interactions shall be interpreted independently. The positions where effects appear/disappear/reverse must be characterized with specific within-layer numerical values; do not merely write 'there exists a complex interdependent relationship'."
       },
-
       {
         "case_id": "R2",
         "name": "Lower-order interaction significant (highest-order not significant)",
         "condition": "Highest-order interaction has ANOVA P ≥ 0.05, and at least one lower-order interaction has P < 0.05. Example for three factors: a two-way interaction is significant.",
-
         "statistical_analysis": {
           "template_algorithm": "Report that the highest-order interaction is not significant. Report all significant lower-order interaction terms (F/χ², df, P). Report that the remaining lower-order interactions are not significant. Report the F/χ², df, and P-values for all main effects individually (regardless of significance; numerical values must be reported). For mixed models, report random factor variance components."
         },
-
         "trend_analysis": {
           "description": "Each significant lower-order interaction is independently decomposed in both directions. ⚠️ Additionally, if there is a factor that does not participate in any significant interaction and its own main effect is significant, it shall undergo the R3 extreme comparison analysis. If the main effect of a factor not participating in an interaction is not significant, no extreme comparison is performed; it is only mentioned as non-significant in the statistical section.",
-
           "per_interaction_algorithm": {
             "interaction_name": "[F1×F2]",
             "direction1": "Hold F1_i fixed, report F2_Level_K vs F2_Level_1; layers = K_F1; format: 'Holding [F1_i complete label] fixed, [F2_Level_K complete label] ([X.XX ± X.XX]) increased/decreased by [X.XX] relative to [F2_Level_1 complete label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value]); [intermediate supplementation].'",
@@ -184,49 +278,43 @@
             },
             "note": "Because this interaction is significant, the main effects it involves shall not be interpreted independently."
           },
-
           "uninvolved_main_effect_rule": {
             "description": "For factors that do not participate in any significant interaction and whose main effect is significant, apply the R3 logic: marginalize over all other factors and report the extreme comparison.",
             "example_syntax": "[F3_Level_K complete label] [response variable] was [X.XX ± X.XX] [quantifier] (marginal mean), increased/decreased by [X.XX] relative to [F3_Level_1 complete label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value]), and the interactions of F3 with F1 and F2, as well as the three-way interaction, were all non-significant (all *P* > 0.05), indicating that the effect of F3 is independent of F1 and F2."
           },
-
           "processing_rule": "Apply the above algorithm to each significant lower-order interaction in sequence. If the highest-order interaction is not significant, these interactions do not depend on higher-order factor levels."
         },
-
         "effect_statement": "Main effects involved in significant interaction terms shall not be interpreted independently. Factors that do not participate in any significant interaction and whose main effect is significant may be interpreted independently. Main effects that do not participate in any significant interaction and are not significant shall also not be interpreted independently."
       },
-
       {
         "case_id": "R3",
         "name": "Only main effects significant",
         "condition": "All interaction terms have ANOVA P ≥ 0.05 (or no interactions exist), and at least one main effect has P < 0.05.",
-
         "statistical_analysis": {
           "template_algorithm": "Report the F/χ², df, and P-values for all main effects individually (regardless of significance; numerical values must be reported). State that all interactions are not significant (if interactions exist). For mixed models, report random factor variance components."
         },
-
         "trend_analysis": {
           "description": "⚠️ Perform extreme comparison analysis only for factors with significant main effects. For factors with non-significant main effects, do not perform trend decomposition; only mention them as non-significant in the statistical section. Order by P-value from smallest to largest.",
-
           "per_effect_algorithm": {
             "effect": "F1",
             "comparison": "Report F1_Level_K vs F1_Level_1; if K_F1 > 2, execute intermediate supplementation, plateau check, and peak detection. Format: '[F1_Level_K complete label] [response variable] was [X.XX ± X.XX] [quantifier] (marginal mean), increased/decreased by [X.XX] relative to [F1_Level_1 complete label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value]); [intermediate supplementation].'"
           }
         },
-
         "effect_statement": "Each significant main effect is interpreted independently (all interactions are not significant or do not exist)."
       },
-
       {
         "case_id": "R4",
         "name": "None significant or model degraded",
-        "statistical_analysis": { "template_algorithm": "Report that the model failed to converge stably or that all tests were non-significant." },
-        "trend_analysis": { "template_algorithm": "Report only observed proportions or descriptive data; do not make statistical inferences." },
+        "statistical_analysis": {
+          "template_algorithm": "Report that the model failed to converge stably or that all tests were non-significant."
+        },
+        "trend_analysis": {
+          "template_algorithm": "Report only observed proportions or descriptive data; do not make statistical inferences."
+        },
         "effect_statement": "This result is reported descriptively based on observed proportions only, without statistical inference."
       }
     ]
   },
-
   "phase_3_computation_instructions": {
     "r_code_template": {
       "fit_lm_typeIII": "library(car); options(contrasts = c('contr.sum', 'contr.poly')); model <- lm(response ~ F1 * F2 * F3, data = dat); Anova(model, type = 3)",
@@ -235,44 +323,48 @@
       "emm_high_order_dir1": "emm <- emmeans(model, ~ F1 | F2 * F3, type = 'response'); pairs(emm, adjust = 'tukey')",
       "emm_2way_dir1": "emm <- emmeans(model, ~ F2 | F1, type = 'response'); pairs(emm, adjust = 'tukey')",
       "emm_main": "emm <- emmeans(model, ~ F1, type = 'response'); pairs(emm, adjust = 'tukey')",
-
       "emm_glmm_extract_means": "⚠️ GLMM difference extraction: Because pairs(type='response') returns ratios in the estimate column, it is prohibited to extract directly. Execute: emm_resp <- emmeans(model, ~ F1 | F2 * F3, type = 'response'); emm_df <- as.data.frame(emm_resp); extract the emm_df$response column as means, and manually compute differences (treatment group mean - reference group mean).",
-
       "interaction_contrast": "emm <- emmeans(model, ~ F2 | F1, type = 'response'); contrast(emm, interaction = 'pairwise', adjust = 'tukey')"
     },
-
     "disassembly_discipline": {
       "description": "⚠️ Decomposition specification discipline (most error-prone). Incorrect specifications will cause the number of comparison groups, marginal means, and P-values to deviate from the algorithm requirements.",
       "table": [
-        { "case": "R1 highest-order interaction significant", "correct_spec": "Retain all factor stratification, e.g., ~ F1 | F2 * F3", "common_error": "❌ Incorrectly using marginalized specification" },
-        { "case": "R2 lower-order interaction significant", "correct_spec": "Marginalize higher-order factors not participating in this interaction, e.g., ~ F1 | F2", "common_error": "❌ Continuing to use the fine decomposition from highest-order interaction" },
-        { "case": "R3 main effects only", "correct_spec": "~ F1, marginalizing all other factors", "common_error": "❌ Performing any stratified decomposition" }
+        {
+          "case": "R1 highest-order interaction significant",
+          "correct_spec": "Retain all factor stratification, e.g., ~ F1 | F2 * F3",
+          "common_error": "❌ Incorrectly using marginalized specification"
+        },
+        {
+          "case": "R2 lower-order interaction significant",
+          "correct_spec": "Marginalize higher-order factors not participating in this interaction, e.g., ~ F1 | F2",
+          "common_error": "❌ Continuing to use the fine decomposition from highest-order interaction"
+        },
+        {
+          "case": "R3 main effects only",
+          "correct_spec": "~ F1, marginalizing all other factors",
+          "common_error": "❌ Performing any stratified decomposition"
+        }
       ]
     },
-
     "pre_write_steps": {
       "must_do": "Before writing the text, use a script or manual calculation to prepare a lookup table containing 'reference group mean / treatment group mean / difference / SE / percentage / pairwise P-value' for each comparison, then write from the table.",
-      "prohibited": ["Back-calculating differences or percentages from already rounded values in the text", "Summarizing ranges of multiple groups by impression (prone to missing extreme groups)", "Carrying over numerical values from the previous indicator when copying sentence structures across indicators"]
+      "prohibited": [
+        "Back-calculating differences or percentages from already rounded values in the text",
+        "Summarizing ranges of multiple groups by impression (prone to missing extreme groups)",
+        "Carrying over numerical values from the previous indicator when copying sentence structures across indicators"
+      ]
     },
-
     "extraction_rules": {
       "anova_p": "Extract from the model fixed-effects output, report to 3 decimal places.",
       "pairwise_p": "Extract the p.value column from the pairs() or contrast() output, report to 3 decimal places.",
-
       "estimate": "⚠️ For LMM/ANOVA, extract the estimate column from pairs() directly as the absolute difference. For GLMM, extract response means via as.data.frame(emmeans(...)) and manually compute differences; prohibit direct extraction from pairs() estimate.",
-
       "standard_error": "⚠️ Extract the SE column from as.data.frame(emmeans(...)) output, report to 2 decimal places. Combine with the mean as 'mean ± SE'. Prohibit using raw data SD as a substitute for model SE.",
-
       "percentage": "Percentage = (difference / reference group mean) × 100, report to 2 decimal places.",
-
       "response_scale_and_unit_rule": "GLMM (binomial): report means as 'X.XX ± X.XX probability', differences as probability differences; GLMM (Poisson/NB): report means as 'X.XX ± X.XX times/individuals', differences as count differences; LMM/ANOVA: report means as 'X.XX ± X.XX mg' etc. with physical units.",
-
       "reference_level_selection": "Use the lowest level (Level_1) as the reference group; report the change of the highest level (Level_K) relative to Level_1. For unordered categorical factors, the reference is user-specified.",
-
       "anova_type_note": "The Type (I/II/III) of sums of squares used must be stated in the report. For unbalanced designs, Type III is recommended (with contr.sum set)."
     }
   },
-
   "phase_4_final_checklist": {
     "checks": [
       "Was phase_0 level mapping preprocessing performed?",
@@ -291,7 +383,6 @@
       "Was the ANOVA type of sums of squares stated? Were the signs/directions from pairs() checked?"
     ]
   },
-
   "phase_5_placeholder_management": {
     "placeholders": [
       "[response variable name]",
@@ -306,7 +397,6 @@
     "note": "[X.XX ± X.XX] represents the estimated marginal mean and its standard error. [quantifier] must be dynamically filled according to model type: physical unit (mg, mm²) / probability / times/individuals. All Level-containing placeholders should be filled with the complete format '[factor name] + [specific level value/name]'.",
     "post_processing": "After the user provides actual data, the AI shall replace all placeholders and verify the consistency of statistical values."
   },
-
   "quick_reference": {
     "format_rules": {
       "P-value": "Report to 3 decimal places, e.g., P = 0.023, P < 0.001",
@@ -326,10 +416,5 @@
       "Two factors (2 factors)": "Only interaction is F1×F2. If significant, enter R1 for bidirectional decomposition; if not significant, enter R3.",
       "Three factors (3 factors)": "Three-way significant → R1; only two-way significant → R2; only main effects → R3."
     }
-  },
-
-  "style_example": {
-    "description": "Style example: Three-factor R2 scenario (three-way not significant, one two-way interaction significant, one of three main effects significant), demonstrating multi-level intermediate supplementation, plateau check, peak detection, independent interpretation of a main effect not participating in any significant interaction, interaction contrast, and EMMs ± SE reporting.",
-    "text": "**Second instar duration (developmental temperature × background temperature two-way interaction significant; pesticide background main effect significant)**\n\nIn the Type III test of the three-factor linear model, the three-way interaction was not significant (*F*₂,₄₄₅ = [F-value], *P* = [P-value]), only the developmental temperature × background temperature two-way interaction was significant (*F*₂,₄₄₅ = [F-value], *P* = [P-value]), while developmental temperature × pesticide background (*F*₂,₄₄₅ = [F-value], *P* = [P-value]) and background temperature × pesticide background (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) were not significant; the main effects of developmental temperature (*F*₂,₄₄₅ = [F-value], *P* = [P-value]) and background temperature (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) were not significant, but the main effect of pesticide background was significant (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) (Figure [figure number]).\n\nDirection 1 (fixed background temperature, marginalizing over pesticide background, comparing developmental temperature; developmental temperature 27 ℃ vs 22 ℃): At background temperature 15 ℃, the second instar duration of the developmental temperature 27 ℃ group was [X.XX ± X.XX] d, which did not differ significantly from the developmental temperature 22 ℃ group ([X.XX ± X.XX] d) (*P* = [P-value], pairwise comparison); however, the developmental temperature 25 ℃ group ([X.XX ± X.XX] d) increased by [X.XX] relative to the developmental temperature 22 ℃ group (+[X.XX]%, *P* = [P-value], pairwise comparison), and increased by [X.XX] relative to the developmental temperature 27 ℃ group (+[X.XX]%, *P* = [P-value], pairwise comparison), overall showing an initial increase followed by a decrease (unimodal pattern). At background temperature 25 ℃, the developmental temperature 27 ℃ group ([X.XX ± X.XX] d) increased by [X.XX] relative to the developmental temperature 22 ℃ group ([X.XX ± X.XX] d) (+[X.XX]%, *P* = [P-value], pairwise comparison); the developmental temperature 25 ℃ group ([X.XX ± X.XX] d) increased by [X.XX] relative to the developmental temperature 22 ℃ group (+[X.XX]%, *P* = [P-value], pairwise comparison), and did not differ significantly from the developmental temperature 27 ℃ group (*P* = [P-value], pairwise comparison), showing a plateau trend after continuous increase.\n\nDirection 2 (fixed developmental temperature, marginalizing over pesticide background, comparing background temperature; background temperature 25 ℃ vs 15 ℃): At developmental temperature 22 ℃, the background temperature 25 ℃ group had a second instar duration of [X.XX ± X.XX] d, which increased/decreased by [X.XX] relative to the background temperature 15 ℃ group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison); at developmental temperature 25 ℃, the background temperature 25 ℃ group was [X.XX ± X.XX] d, which increased/decreased by [X.XX] relative to the background temperature 15 ℃ group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison); at developmental temperature 27 ℃, the background temperature 25 ℃ group was [X.XX ± X.XX] d, which increased/decreased by [X.XX] relative to the background temperature 15 ℃ group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison).\n\nDirection 3 (marginalizing over developmental temperature and background temperature, comparing pesticide background; with pesticide vs without pesticide): The with-pesticide group had a second instar duration of [X.XX ± X.XX] d (marginal mean), which increased/decreased by [X.XX] relative to the without-pesticide group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison).\n\nThe developmental temperature × background temperature interaction contrast indicated that the effect of developmental temperature differed significantly between background temperature 15 ℃ and 25 ℃ (*P* = [P-value], pairwise comparison). Because the developmental temperature × background temperature two-way interaction was significant, the main effects of developmental temperature and background temperature were not interpreted independently; because pesticide background did not participate in any significant interaction and its main effect was significant, its effect was independent of developmental temperature and background temperature and could be interpreted independently."
   }
 }
