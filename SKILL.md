@@ -179,7 +179,7 @@ flowchart TD
 
 脚本位置：`{SKILL_ROOT}/scripts/md2docx.py`
 
-> **【跨机器可移植】** 该脚本为**纯 Python 3 标准库实现**，不依赖 `python-docx` / `markdown`，无需联网 pip 安装。换电脑后只要存在一个 Python 3 解释器即可直接运行，不受安装路径、虚拟环境、是否预装第三方库的限制。**禁止在调用命令中写死本机专属路径（如 `D:/python3_1/python.exe`）。**
+> **【跨机器可移植】** 该脚本为**纯 Python 3 标准库实现**，不依赖 `python-docx` / `markdown`，无需联网 pip 安装。
 
 **动态定位 Python 解释器（按序尝试，命中即用）：**
 1. WorkBuddy 托管 Python（优先，隔离稳定）：
