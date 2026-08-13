@@ -1,389 +1,335 @@
 {
-  "name": "三因素试验结果写作决策树",
-  "version": "6.1",
-  "description": "用于指导AI根据三因素试验（2×2×2完全析因设计）的统计结果，逐指标生成符合经典生态学期刊规范的结果段落。每个指标按'先统计分析，后趋势分析'的模式写作。本文件为结构化权威源（JSON），替代旧版 Markdown 版 decision_tree.md。",
+  "name": "Multi-Factor Experimental Results Writing Decision Tree (General Edition)",
+  "version": "8.6",
+  "description": "Designed to guide AI in generating results paragraphs that conform to classical ecological journal standards, based on statistical results from completely factorial experiments. Core algorithms include multi-level trend description (with non-monotonic trend detection and peak emphasis), mandatory EMMs ± SE reporting, unit/quantifier adaptation, interaction significance routing, and GLMM response-scale difference extraction mechanisms.",
+
+  "core_disciplines": [
+    "⚠️ When an interaction is significant, the main effects it involves shall not be interpreted independently (R1 covers all; R2 covers partially).",
+    "⚠️ All means must be EMMs and must be reported with SE (format: X.XX ± X.XX).",
+    "⚠️ For GLMMs, differences are prohibited from being extracted directly from pairs(); instead, extract means via as.data.frame(emmeans()) and manually compute differences.",
+    "⚠️ When peak detection is triggered for a multi-level factor, the sequential reporting rule is overridden: report only the peak, and summarize the remaining intermediate levels as 'did not reach significant difference'.",
+    "⚠️ Factor labels must use the format 'factor name + specific level value' (e.g., 'temperature 25 ℃'); relative terms such as 'high temperature' and 'control' are prohibited."
+  ],
+
   "applicable_design": {
-    "design_type": "完全析因设计（交叉设计）",
-    "factor_count": 3,
-    "levels_per_factor": 2,
-    "factor_types": "全为分类变量",
-    "model_types": [
-      "三因素方差分析（Three-way ANOVA）",
-      "三因素线性混合模型（LMM）",
-      "三因素广义线性混合模型（GLMM）"
-    ],
-    "exclusions": [
-      "嵌套设计",
-      "裂区设计",
-      "连续变量因素（如温度梯度）",
-      "含协变量模型"
-    ]
+    "design_type": "Completely factorial design (crossed design)",
+    "factor_count": "Any positive integer (≥ 1), specified by the user; defaults to 1–3, extensible",
+    "levels_per_factor": "Any positive integer (≥ 2); factors may have unequal levels",
+    "factor_types": "All categorical variables",
+    "model_types": ["One-way ANOVA", "Two-way ANOVA", "Three-way ANOVA", "Linear Mixed Model", "Generalized Linear Mixed Model"],
+    "exclusions": ["Nested design", "Split-plot design", "Continuous variable factors", "Models with covariates"]
   },
+
   "input_requirements": [
-    "响应变量数据（长格式：响应值、因素A/B/C各水平标识、随机因子标识）",
-    "统计模型输出（主效应及交互项的F/χ²值、df、P值；随机因子方差组分）",
-    "因素水平定义（A/B/C各两个水平的具体名称）"
+    "Response variable data (long format: response values, factor level identifiers, random factor identifiers)",
+    "Statistical model output (F/χ² values, df, P-values for all main effects and interactions; random factor variance components)",
+    "Factor level definitions (name and order for each factor's levels; for unordered categorical variables, a reference level must be specified)",
+    "Factor count (factor_count)"
   ],
+
   "global_settings": {
-    "trend_analysis_method": "边际均值（Estimated Marginal Means, EMMs），使用R emmeans包或等效软件计算",
-    "pairwise_adjustment": "Tukey HSD（多重比较校正）",
-    "language_constraints": "禁止使用'表明''说明''显示''揭示''暗示''证实''证明'等讨论式用语",
+    "trend_analysis_method": "Estimated Marginal Means (EMMs), computed using the R emmeans package or equivalent software",
+    "pairwise_adjustment": "Tukey HSD (multiple comparison correction)",
+    "language_constraints": "Prohibit discursive language such as 'suggest', 'indicate', 'show', 'reveal', 'imply', 'confirm', 'demonstrate'.",
+
     "formatting_rules": {
-      "rounding_method": "标准四舍五入（4舍5入）",
-      "p_value": "保留3位小数。若 P < 0.001，写为 '< 0.001'；若 P > 0.99，写为 '> 0.99'。",
-      "other_values": "均值、差值、百分比、F值、χ²值、标准差等所有非P值统计量，均保留2位小数。"
+      "p_value": "Report to 3 decimal places. If P < 0.001, write as '< 0.001'; if P > 0.99, write as '> 0.99'.",
+      "other_values": "All non-P-value statistics (means, differences, percentages, SE, F-values, χ² values, etc.) shall be reported to 2 decimal places.",
+      "rounding_method": "Standard rounding (4/5 rounding)"
     },
-    "percentage_calculation": "百分比 = (差值 / 参照组均值) × 100，保留2位小数（如：15.32%）。GLM/GLMM反变换概率的百分比分母必须用参照组均值，禁止用处理组均值作分母。",
-    "anova_p_value_source": "报告模型固定效应的ANOVA F检验或似然比检验P值",
-    "pairwise_p_value_source": "报告emmeans两两比较（pairwise comparison）的P值，需明确标注'两两比较'"
-  },
-  "style_rules": [
-    {
-      "id": 1,
-      "name": "标点",
-      "rule": "中文写作句子（含中文结果正文与统计表达式）统一使用半角逗号','、半角句号'.'、半角括号'()'；英文正文同理。数字/统计量/单位/百分号前后不夹全角空格（如 '升高 0.28（+119.36%, P < 0.001, 两两比较）'，数字与单位间留一个半角空格）。禁止全半角混用。"
-    },
-    {
-      "id": 2,
-      "name": "交互符号",
-      "rule": "因素间一律用无空格乘号'×'：A×B、A×B×C、B×C。禁止 'A × B' 带空格写法。"
-    },
-    {
-      "id": 3,
-      "name": "两两比较标注（后置）",
-      "rule": "两两比较P值一律写成 'P = 【P值】, 两两比较'，置于对应对比之后。ANOVA主效应/交互的P值不标'两两比较'，二者必须区分。禁止前置写法（如'两两比较显示 P = …'）。"
-    },
-    {
-      "id": 4,
-      "name": "因子称谓",
-      "rule": "正式文本用带生物学意义的中文称谓，禁止残留模板代号 A/B/C、dev22、bg22、p−、p+ 等。例：背景温度称'冷背景/暖背景'，农药背景称'无农药背景/有农药背景'，发育温度称'22 ℃ 发育/27 ℃ 发育'。模板内 A/B/C 仅作通用占位，落笔必须替换。"
-    },
-    {
-      "id": 5,
-      "name": "拆解排版（纯段落）",
-      "rule": "趋势分析各方向（方向1/2/3）用连续段落陈述，禁止无序列表 bullet。统计分析/趋势分析/效应说明三段之间用空行分隔，三段本身均为段落。模板中的 bullet 仅为脚手架，落笔一律转连续段落。"
-    },
-    {
-      "id": 6,
-      "name": "模型声明位置",
-      "rule": "模型类型与随机因子在结果节开头集中声明一次，各指标段内只报该指标的检验量与P值，不在每段重复完整模型定义。"
-    },
-    {
-      "id": 7,
-      "name": "百分比与差值（双报）",
-      "rule": "统一公式 百分比 = (差值 / 参照组均值) × 100。正方向写 '+X.XX%'，负方向写 '−X.XX%'（半角减号 −，非连字符 -）。每个对比先写变化量'升高/降低 X.XX 单位'，再写 '（+X.XX%, P = …, 两两比较）'。"
-    },
-    {
-      "id": 8,
-      "name": "图号",
-      "rule": "同一文档内统一：初稿用占位符'图【待补充】'，定稿统一替换为具体图号（如'图 2'或'图 2a–g'）。禁止同一节内子图号与整图号混用且无说明。"
-    },
-    {
-      "id": 9,
-      "name": "偏 η²",
-      "rule": "同一文档内所有 LMM/ANOVA 同类模型统一伴随偏 η²（η²ₚ = X.XX）或统一不报；禁止部分指标报、部分不报。"
-    },
-    {
-      "id": 10,
-      "name": "内部自查标记",
-      "rule": "路由标识 C1/C2/C3/C4 仅用于写作过程决策，禁止进入交付文本的小节标题。正确：'若虫体面积（三阶交互显著）'；错误：'若虫体面积（三阶交互显著, C1）'。"
-    },
-    {
-      "id": 11,
-      "name": "位置尺度模型须同时写位置与尺度",
-      "rule": "当模型为位置尺度模型（含离散度子模型），结果必须同时报告位置（均值）部分与尺度（残差方差/离散度）部分，尺度部分禁止缩写为一句话带过。尺度写法：①全局异质性似然比检验，自由度取'处理单元数−1'；②逐单元残差标准差σ，以各背景边际σ均值及范围呈现离散度方向；③尺度部分作为独立一段并列报告，与位置使用同一模型、同一编码、同一Type III检验。"
-    },
-    {
-      "id": 12,
-      "name": "统计符号字体（斜体/正体）",
-      "rule": "检验统计量符号一律斜体：F、P、t、χ²、r、R、η²、β 等。自由度（下标数字）、等号、全部数值保持正体：如 'F₁,₄₄₅ = 4.43, P = 0.036' 中仅 F 与 P 斜体。括号/逗号/百分号等标点不受斜体影响，仍按规则1统一半角。本管线以'χ² 斜体'为准。"
+
+    "percentage_calculation": "Percentage = (difference / reference group mean) × 100, reported to 2 decimal places. For GLM/GLMM back-transformed probabilities, the denominator must be the reference group mean.",
+
+    "anova_p_value_source": "Report the P-value from the ANOVA F-test or likelihood ratio test for model fixed effects.",
+    "pairwise_p_value_source": "Report the P-value from emmeans pairwise comparisons, explicitly labeled as 'pairwise comparison'.",
+
+    "multi_level_universal_algorithm": {
+      "description": "Enforced when any factor has more than 2 levels. Core principles: extreme comparison first → intermediate level supplementation → non-monotonic trend detection → layer-wise traversal.",
+      "level_ordering": "Factor levels shall be sorted in ascending numerical or logical order; designate Level_1 as the reference (lowest) and Level_K as the highest. For unordered categorical factors, the user specifies the reference level.",
+
+      "comparison_selection_algorithm": {
+        "if_K_equals_2": "Report Level_2 vs Level_1 (direct two-level comparison).",
+        "if_K_greater_than_2": "By default, report only Level_K vs Level_1 as the core finding. Intermediate levels are described in supplementary sentences in sequence. If the peak_detection_rule is triggered, this default order is overridden.",
+        "prohibited": "Prohibit reporting all pairwise combinations one by one (e.g., Level_2 vs Level_1, Level_3 vs Level_1, Level_2 vs Level_3)."
+      },
+
+      "middle_level_supplement_algorithm": {
+        "single_middle": "If K=3 and peak detection is not triggered, use the format: '[Level_2 label] ([X.XX ± X.XX] [quantifier]) increased/decreased by [X.XX] relative to Level_1 (+/-[X.XX]%, *P* = [P-value], pairwise comparison), and did not differ significantly from / was significantly lower/higher than Level_K (*P* = [P-value], pairwise comparison).'",
+        "multiple_middles": "If K>3 and peak detection is not triggered, report the change relative to Level_1 and the P-value for each intermediate level in sequence from Level_2 → Level_3 → … → Level_{K-1}.",
+        "platform_check": "For K>2, before summarizing the trend, the comparison between the highest level and the second-highest level must be reported. Format: '[Level_K label] ([X.XX ± X.XX]) increased/decreased by [X.XX] relative to [Level_{K-1} label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value], pairwise comparison), showing a plateau trend / the trend continues to rise.'",
+        "note": "All difference, percentage, and P-values in supplementary sentences are derived from Tukey HSD-corrected pairwise comparisons. EMMs ± SE must be reported in parentheses."
+      },
+
+      "peak_detection_rule": {
+        "description": "Detection mechanism for non-monotonic trends (unimodal, U-shaped). Ecological data often have optimal intermediate points that must not be missed.",
+        "trigger_condition": "If the extreme comparison (Level_K vs Level_1) has P > 0.05 (not significant), check whether any intermediate level is significantly higher or lower than both ends.",
+        "action": "If an intermediate level Level_i (1 < i < K) is significantly higher or lower than both ends, override the sequential reporting order and report Level_i first. If multiple significant extremes exist, select the one with the largest absolute difference from both ends as Level_i for reporting. Summarize the remaining intermediate levels as 'did not reach significant difference' without listing them individually.",
+        "syntax": "[Level_K label] ([X.XX ± X.XX] [quantifier]) did not differ significantly from [Level_1 label] ([X.XX ± X.XX]) (*P* = [P-value], pairwise comparison); however, [Level_i label] ([X.XX ± X.XX]) increased/decreased by [X.XX] relative to [Level_1 label] (+/-[X.XX]%, *P* = [P-value], pairwise comparison), and increased/decreased by [X.XX] relative to [Level_K label] (+/-[X.XX]%, *P* = [P-value], pairwise comparison).",
+        "effect_size_for_ranking": "When peak detection is triggered, the 'extreme comparison effect size' used for ranking this layer equals max(|Level_i mean - Level_1 mean|, |Level_i mean - Level_K mean|).",
+        "trend_summary": "Summarize as 'Overall showing an initial increase followed by a decrease (unimodal pattern) / initial decrease followed by an increase (U-shaped pattern)'."
+      },
+
+      "performance_safeguard": {
+        "max_layers_before_warning": 25,
+        "warning_message": "If the number of layers in a direction exceeds 25, prompt the user: 'The number of decomposition layers is large (currently X layers). It is recommended to report only the 3–5 layers with the strongest effects and summarize the rest.'",
+        "summary_template": "Summarize the remaining layers uniformly as: 'In the remaining [X] layers, the direction of the extreme effect of [factor] was [consistent/inconsistent], but most did not reach significance (*P* > 0.05, pairwise comparison).'"
+      }
     }
+  },
+
+  "style_rules": [
+    { "id": 1, "name": "Punctuation", "rule": "Use half-width commas ',' periods '.' and parentheses '()' uniformly in Chinese writing. Mixing full-width and half-width punctuation is prohibited." },
+    { "id": 2, "name": "Interaction symbol", "rule": "Use the multiplication sign '×' without spaces between factors: F1×F2, F1×F2×F3. The spaced form 'F1 × F2' is prohibited." },
+    { "id": 3, "name": "Pairwise comparison labeling (post-positioned)", "rule": "Pairwise comparison P-values shall always be written as 'P = [P-value], pairwise comparison', placed after the corresponding comparison. ANOVA main effect P-values are not labeled this way. Pre-positioned forms are prohibited." },
+    { "id": 4, "name": "Factor labels", "rule": "Use the combined format '[factor Chinese name] + [specific level value/name]' (e.g., 'temperature 30 ℃', 'normal moisture'). Relative terms such as 'high temperature', 'low temperature', and 'control' are prohibited." },
+    { "id": 5, "name": "Decomposition layout (paragraphs only)", "rule": "Trend analyses in each direction shall be presented as continuous paragraphs. Bullet lists are prohibited. Blank lines shall separate the three sections: statistical analysis / trend analysis / effect statement." },
+    { "id": 6, "name": "Model declaration placement", "rule": "Model type and random factors shall be declared once at the beginning of the Results section. Each indicator paragraph shall report only its own test statistics and P-values." },
+    { "id": 7, "name": "Percentage and difference (dual reporting)", "rule": "Positive direction writes '+X.XX%', negative direction writes '−X.XX%' (half-width minus sign). Each comparison shall state the change amount first, followed by the percentage and P-value." },
+    { "id": 8, "name": "Figure numbers", "rule": "Drafts use the placeholder 'Figure [to be added]'; final versions replace with specific figure numbers." },
+    { "id": 9, "name": "Partial η²", "rule": "Within the same document, all LMM/ANOVA models of the same type shall consistently report partial η² (η²ₚ = X.XX) or consistently not report it. Mixed reporting is prohibited." },
+    { "id": 10, "name": "Internal check markers", "rule": "R1/R2/R3/R4 are used only for writing process decisions and are prohibited from appearing in delivered section titles." },
+    { "id": 11, "name": "Location-scale models", "rule": "The scale component shall be reported as an independent paragraph, using the same model and same Type III tests as the location component." },
+    { "id": 12, "name": "Statistical symbol font (italic/roman)", "rule": "Test statistics symbols shall be italicized: F, P, t, χ², η², etc. Formats: *χ*², *η*². Degrees of freedom (subscript numbers), equal signs, and all numerical values remain roman." },
+    { "id": 13, "name": "Response variable type and quantifier adaptation", "rule": "Continuous variables report physical units (e.g., mg); Binomial distributions report 'X.XX ± X.XX probability' or percentages; Poisson/Negative Binomial report count quantifiers (e.g., times, individuals). Prohibit reporting count data as unitless numbers." },
+    { "id": 14, "name": "Mean variability reporting", "rule": "All means reported in parentheses must be estimated marginal means (EMMs) and must be reported with model standard errors (SE) in the format 'mean ± SE'. Prohibit reporting raw arithmetic means or standard deviations." }
   ],
-  "phase_1_指标排序": {
-    "description": "同一段落内有多个响应指标时，按以下优先级决定写作顺序",
+
+  "phase_0_level_mapping_preprocessing": {
+    "mandatory": true,
+    "steps": [
+      { "step": 1, "action": "Create an ordered mapping table for each factor based on the user's level definitions. If levels have a natural order, sort ascending; if unordered, the user specifies a reference level as Level_1. Example: F1 = {1:'15℃', 2:'20℃', 3:'25℃'}." },
+      { "step": 2, "action": "Determine the number of levels K_F1, K_F2, ... for each factor and store them." },
+      { "step": 3, "action": "If any K > 2, mark as 'multi-level mode' and activate multi_level_universal_algorithm (including extreme comparison, plateau check, and non-monotonic peak detection). If all K = 2, use traditional two-level direct comparison logic." },
+      { "step": 4, "action": "Determine factor_count and generate the complete list of possible interaction terms (e.g., for factor_count=3: F1×F2, F1×F3, F2×F3, F1×F2×F3)." },
+      { "step": 5, "action": "Implicitly carry the mapping tables and interaction information into the writing process; ensure every comparison value can be traced back to its corresponding level." },
+      { "step": 6, "action": "In the final text, every level label must use the complete format '[factor Chinese name] + [specific level value/name]' (e.g., 'temperature 15 ℃' rather than 'low temperature' or 'lowest level')." }
+    ]
+  },
+
+  "phase_1_indicator_ordering": {
     "rules": [
-      {
-        "rank": 1,
-        "condition": "A×B×C 交互的 ANOVA P < 0.05",
-        "label": "三阶交互指标",
-        "action": "排在该段落最前面，作为核心发现"
-      },
-      {
-        "rank": 2,
-        "condition": "A×B×C 交互的 ANOVA P ≥ 0.05，且至少一个二阶交互（A×B/A×C/B×C）的 ANOVA P < 0.05",
-        "label": "二阶交互指标",
-        "action": "排在三阶交互指标之后"
-      },
-      {
-        "rank": 3,
-        "condition": "所有交互项 ANOVA P ≥ 0.05，且至少一个主效应（A/B/C）的 ANOVA P < 0.05",
-        "label": "仅主效应指标",
-        "action": "排在最后"
-      },
-      {
-        "rank": 4,
-        "condition": "所有主效应及交互项 ANOVA P ≥ 0.05，或统计模型无法收敛/完全分离",
-        "label": "全不显著或模型退化指标",
-        "action": "排在末尾作为补充说明"
-      }
+      { "rank": 1, "condition": "Highest-order interaction (order = factor_count) has P < 0.05", "action": "Place first in this paragraph as the core finding" },
+      { "rank": 2, "condition": "Highest-order interaction not significant, but at least one lower-order interaction has P < 0.05", "action": "Place after highest-order interaction indicators" },
+      { "rank": 3, "condition": "All interactions not significant, but at least one main effect has P < 0.05", "action": "Place last" },
+      { "rank": 4, "condition": "All main effects and interactions have P ≥ 0.05, or model degradation", "action": "Place at the end as supplementary description" }
     ]
   },
-  "phase_2_单指标写作": {
-    "description": "每个指标按'统计分析 → 趋势分析 → 效应说明'三步组织内容",
-    "layout_discipline": "⚠️ 模板中的无序列表（方向1/2/3、双向1/2）仅为可读性脚手架，落笔一律转为连续段落（见 style_rules #5）。所有'P = 【P值】, 两两比较'均按后置格式，不得改前置。因素一律用中文称谓（见 #4），不得残留 A/B/C 等代号。",
-    "cases": [
-      {
-        "case_id": "C1",
-        "name": "三阶交互显著",
-        "condition": "A×B×C 交互的 ANOVA P < 0.05",
-        "statistical_analysis": {
-          "template": "三因素【模型类型】分析中，【响应变量名称】受A、B与C三阶交互作用的显著影响（F_df1,df2 = 【F值】, P = 【P值】）（图【图号】），A（F_df1,df2 = 【F值】, P = 【P值】）、B（F_df1,df2 = 【F值】, P = 【P值】）与C（F_df1,df2 = 【F值】, P = 【P值】）的主效应【分别报告显著/不显著】，二阶交互【按实际逐项报告显著/不显著】。【若为混合模型：随机因子【名称】作为随机因子纳入，其方差组分为【X.XX】（±【X.XX】SD）。】",
-          "note": "⚠️ 三阶交互显著不意味着主效应必然不显著，二者可同时显著。主效应与二阶交互一律按实际检验结果如实报告，不得预设为'均不显著'。"
-        },
-        "trend_analysis": {
-          "description": "需拆解3种方向，覆盖所有交互组合。方向1、方向2必须报告，方向3推荐报告",
-          "directions": [
-            {
-              "direction_id": 1,
-              "name": "固定B和C，看A",
-              "comparison_groups": 4,
-              "calculation": "emmeans(model, ~ A | B * C)",
-              "template": "固定B1C1下，A1【响应变量】为【X.XX】【单位】（边际均值），较A2（【X.XX】【单位】）【升高/降低】【X.XX】【单位】（+/-【X.XX】%，P = 【P值_两两比较】）；固定B1C2下，A1为【X.XX】，较A2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定B2C1下，A1为【X.XX】，较A2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定B2C2下，A1为【X.XX】，较A2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。"
-            },
-            {
-              "direction_id": 2,
-              "name": "固定A和C，看B",
-              "comparison_groups": 4,
-              "calculation": "emmeans(model, ~ B | A * C)",
-              "template": "固定A1C1下，B1【响应变量】为【X.XX】【单位】（边际均值），较B2（【X.XX】【单位】）【升高/降低】【X.XX】【单位】（+/-【X.XX】%，P = 【P值_两两比较】）；固定A1C2下，B1为【X.XX】，较B2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定A2C1下，B1为【X.XX】，较B2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定A2C2下，B1为【X.XX】，较B2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。"
-            },
-            {
-              "direction_id": 3,
-              "name": "固定A和B，看C",
-              "comparison_groups": 4,
-              "calculation": "emmeans(model, ~ C | A * B)",
-              "optional": true,
-              "template": "固定A1B1下，C1【响应变量】为【X.XX】【单位】（边际均值），较C2（【X.XX】【单位】）【升高/降低】【X.XX】【单位】（+/-【X.XX】%，P = 【P值_两两比较】）；固定A1B2下，C1为【X.XX】，较C2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定A2B1下，C1为【X.XX】，较C2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定A2B2下，C1为【X.XX】，较C2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。"
-            }
-          ]
-        },
-        "effect_statement": "⚠️ 须以具体层内数值刻画效应出现/消失/反向的位置（如A的效应在哪些B×C层内出现、在哪些层内消失或反向），不得只写'存在复杂的相互依赖关系'。因三阶交互显著，二阶交互与主效应不作独立解释。"
-      },
-      {
-        "case_id": "C2_single",
-        "name": "单个二阶交互显著（三阶不显著）",
-        "condition": "A×B×C P ≥ 0.05，且仅有一个二阶交互（如B×C）的 ANOVA P < 0.05，且该交互涉及的主效应不作独立解释",
-        "statistical_analysis": {
-          "template": "三因素【模型类型】分析中，三阶交互不显著（F_df1,df2 = 【F值】, P = 【P值】），但B与C二阶交互显著（F_df1,df2 = 【F值】, P = 【P值】）。A与B（F_df1,df2 = 【F值】, P = 【P值】）、A与C（F_df1,df2 = 【F值】, P = 【P值】）及三者间交互均不显著。A（F_df1,df2 = 【F值】, P = 【P值】）、B（F_df1,df2 = 【F值】, P = 【P值】）与C（F_df1,df2 = 【F值】, P = 【P值】）的主效应【分别报告显著/不显著】。【若为混合模型：随机因子【名称】作为随机因子纳入，其方差组分为【X.XX】（±【X.XX】SD）。】"
-        },
-        "trend_analysis": {
-          "description": "双向拆解，每个方向2组对比，共4组",
-          "directions": [
-            {
-              "direction_id": 1,
-              "name": "固定B，看C",
-              "comparison_groups": 2,
-              "calculation": "emmeans(model, ~ C | B)",
-              "template": "固定B1下，C1【响应变量】为【X.XX】【单位】（边际均值），较C2（【X.XX】【单位】）【升高/降低】【X.XX】【单位】（+/-【X.XX】%，P = 【P值_两两比较】）；固定B2下，C1为【X.XX】，较C2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。"
-            },
-            {
-              "direction_id": 2,
-              "name": "固定C，看B",
-              "comparison_groups": 2,
-              "calculation": "emmeans(model, ~ B | C)",
-              "template": "固定C1下，B1【响应变量】为【X.XX】【单位】（边际均值），较B2（【X.XX】【单位】）【升高/降低】【X.XX】【单位】（+/-【X.XX】%，P = 【P值_两两比较】）；固定C2下，B1为【X.XX】，较B2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。"
-            }
-          ]
-        },
-        "effect_statement": "⚠️ 特例：若双向拆解的4组两两比较均不显著（Tukey校正后），如实报告'四组两两比较均无显著差异'，并指出交互来源（通常为效应方向在两层间反转），不得据ANOVA交互显著就臆造某一层的显著差异。因B×C二阶交互显著，B与C的主效应不作独立解释。"
-      },
-      {
-        "case_id": "C2_single_with_independent",
-        "name": "单个二阶交互显著 + 独立主效应（三阶不显著，某主效应不参与交互）",
-        "condition": "A×B×C P ≥ 0.05，B×C P < 0.05，A主效应 P < 0.05，且A×B、A×C、A×B×C均不显著",
-        "statistical_analysis": {
-          "template": "三因素【模型类型】分析中，三阶交互不显著（F_df1,df2 = 【F值】, P = 【P值】），B与C二阶交互显著（F_df1,df2 = 【F值】, P = 【P值】），A与B（F_df1,df2 = 【F值】, P = 【P值】）、A与C（F_df1,df2 = 【F值】, P = 【P值】）及三者间交互均不显著。A主效应显著（F_df1,df2 = 【F值】, P = 【P值】），B（F_df1,df2 = 【F值】, P = 【P值】）与C（F_df1,df2 = 【F值】, P = 【P值】）主效应因交互不作独立解释。【若为混合模型：随机因子【名称】作为随机因子纳入，其方差组分为【X.XX】（±【X.XX】SD）。】"
-        },
-        "trend_analysis": {
-          "description": "交互部分双向拆解（4组）+ 独立主效应部分（1组）",
-          "parts": [
-            {
-              "part_name": "交互部分",
-              "template": "固定B1下，C1【响应变量】为【X.XX】【单位】（边际均值），较C2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定B2下，C1为【X.XX】，较C2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。固定C1下，B1为【X.XX】，较B2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定C2下，B1为【X.XX】，较B2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。因B×C二阶交互显著，B与C的主效应不作独立解释。"
-            },
-            {
-              "part_name": "独立主效应部分",
-              "template": "A1【响应变量】为【X.XX】【单位】（边际均值），较A2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。A与B、A与C及三者间交互均不显著（所有P > 0.05），A的影响独立于B和C。"
-            }
-          ]
-        }
-      },
-      {
-        "case_id": "C2_complex",
-        "name": "多个二阶交互同时显著（三阶不显著）",
-        "condition": "A×B×C P ≥ 0.05，且至少两个二阶交互（A×B/A×C/B×C）的 ANOVA P < 0.05",
-        "statistical_analysis": {
-          "template": "三因素【模型类型】分析中，三阶交互不显著（F_df1,df2 = 【F值】, P = 【P值】），但【A×B（F_df1,df2 = 【F值】, P = 【P值】）、A×C（F_df1,df2 = 【F值】, P = 【P值】）与B×C（F_df1,df2 = 【F值】, P = 【P值】）】均显著【按实际列出】。A（F_df1,df2 = 【F值】, P = 【P值】）、B（F_df1,df2 = 【F值】, P = 【P值】）与C（F_df1,df2 = 【F值】, P = 【P值】）的主效应【分别报告显著/不显著】。【若为混合模型：随机因子【名称】作为随机因子纳入，其方差组分为【X.XX】（±【X.XX】SD）。】"
-        },
-        "trend_analysis": {
-          "description": "每个显著的二阶交互独立双向拆解，每个交互4组对比",
-          "per_interaction_template": {
-            "interaction_name": "【A×B】",
-            "direction1": "固定A1下，B1为【X.XX】【单位】（边际均值），较B2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定A2下，B1为【X.XX】，较B2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。",
-            "direction2": "固定B1下，A1为【X.XX】【单位】（边际均值），较A2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）；固定B2下，A1为【X.XX】，较A2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。",
-            "note": "因该二阶交互显著，涉及的主效应不作独立解释。"
-          },
-          "processing_rule": "对每个显著的二阶交互，依次套用上述模板，顺序按P值从小到大排列"
-        },
-        "effect_statement": "因三阶交互不显著，上述各二阶交互均不依赖于第三个因素的水平。各交互所涉及的主效应不作独立解释。"
-      },
-      {
-        "case_id": "C3",
-        "name": "仅主效应显著",
-        "condition": "所有交互项 ANOVA P ≥ 0.05，且至少一个主效应（A/B/C）的 ANOVA P < 0.05",
-        "statistical_analysis": {
-          "template": "三因素【模型类型】分析中，【响应变量名称】受A（F_df1,df2 = 【F值】, P = 【P值】）与B（F_df1,df2 = 【F值】, P = 【P值】）主效应的显著影响，C主效应不显著（F_df1,df2 = 【F值】, P = 【P值】），所有交互项均不显著（所有P > 0.05）。【若为混合模型：随机因子【名称】作为随机因子纳入，其方差组分为【X.XX】（±【X.XX】SD）。】"
-        },
-        "trend_analysis": {
-          "description": "每个显著的主效应直接比较两个水平，每个主效应1组对比",
-          "per_effect_template": {
-            "effect": "A",
-            "comparison": "A1【响应变量】为【X.XX】【单位】（边际均值），较A2（【X.XX】）【升高/降低】【X.XX】（+/-【X.XX】%，P = 【P值_两两比较】）。"
-          },
-          "processing_rule": "按P值从小到大排列各主效应，依次套用模板"
-        },
-        "effect_statement": "各主效应独立解释（所有交互均不显著）。"
-      },
-      {
-        "case_id": "C4",
-        "name": "全不显著或模型退化",
-        "condition": "所有主效应和交互 ANOVA P ≥ 0.05，或统计模型无法收敛（完全分离）",
-        "statistical_analysis": {
-          "template": "【响应变量名称】的二项混合模型未能稳定估计，A、B、C及其全部交互的Wald检验均不显著（所有P > 0.99）。"
-        },
-        "trend_analysis": {
-          "template": "观测比例为：【描述性数据】（图【图号】）。"
-        },
-        "effect_statement": "该结果仅以观测比例作描述性报告，不作统计推断。"
-      }
-    ]
-  },
-  "phase_3_计算指令": {
-    "description": "AI执行趋势对比计算时的具体操作步骤",
-    "r_code_template": {
-      "fit_lm": "model <- lm(response ~ A * B * C, data = dat)",
-      "fit_lmm": "model <- lmer(response ~ A * B * C + (1|block), data = dat)",
-      "fit_glmm": "model <- glmer(response ~ A * B * C + (1|block), family = binomial, data = dat)",
-      "emm_3way_dir1": "emm <- emmeans(model, ~ A | B * C); pairs(emm, adjust = 'tukey')",
-      "emm_3way_dir2": "emm <- emmeans(model, ~ B | A * C); pairs(emm, adjust = 'tukey')",
-      "emm_3way_dir3": "emm <- emmeans(model, ~ C | A * B); pairs(emm, adjust = 'tukey')",
-      "emm_2way_dir1": "emm <- emmeans(model, ~ A | B); pairs(emm, adjust = 'tukey')",
-      "emm_2way_dir2": "emm <- emmeans(model, ~ B | A); pairs(emm, adjust = 'tukey')",
-      "emm_main": "emm <- emmeans(model, ~ A); pairs(emm, adjust = 'tukey')"
-    },
-    "disassembly_discipline": {
-      "description": "⚠️ 拆解规格纪律（最易错，务必对照情形选用）；选错规格会导致对比组数、边际均值与P值全部偏离模板要求，且C2用4层细拆时常出现'某层显著'假象。",
-      "table": [
-        {
-          "case": "C1 三阶交互",
-          "correct_spec": "~ A | B * C 等三方向，保留第三因素分层",
-          "groups": "3×4 = 12",
-          "common_error": "—"
-        },
-        {
-          "case": "C2_single / C2_single_with_independent / C2_complex",
-          "correct_spec": "~ A | B + ~ B | A，必须边际化未参与该交互的第三因素",
-          "groups": "每交互 4",
-          "common_error": "❌ 沿用 C1 的 ~ A | B * C 做 4 层细拆"
-        },
-        {
-          "case": "C3 仅主效应",
-          "correct_spec": "~ A，边际化其余两因素",
-          "groups": "每主效应 1",
-          "common_error": "❌ 做任何分层拆解"
-        }
+
+  "phase_2_single_indicator_writing": {
+    "layout_discipline": "⚠️ All trend analysis content must be rendered as continuous paragraphs. All 'P = [P-value], pairwise comparison' must follow the post-positioned format.",
+
+    "routing_algorithm": {
+      "steps": [
+        { "step": 1, "action": "If factor_count = 1, skip all interaction checks and go directly to R3 (main effects only)." },
+        { "step": 2, "action": "If the highest-order interaction has P < 0.05, go to R1 (highest-order interaction significant)." },
+        { "step": 3, "action": "If the highest-order interaction is not significant but at least one lower-order interaction has P < 0.05, go to R2 (lower-order interaction significant)." },
+        { "step": 4, "action": "If all interactions are not significant but at least one main effect has P < 0.05, go to R3 (main effects only)." },
+        { "step": 5, "action": "If none are significant or model degradation, go to R4." }
       ]
     },
-    "pre_write_steps": {
-      "description": "⚠️ 落笔前置步骤（防数据错误）",
-      "must_do": "撰写正文前，先用脚本把每个对比的'参照组均值/处理组均值/差值/百分比/两两比较P'一次性算成对照表，再照表写作。",
-      "prohibited": [
-        "凭正文中已四舍五入的数值反推差值或百分比",
-        "凭印象概括多组数值的范围（易漏掉极端组，写出错误区间）",
-        "跨指标复制句式时沿用上一指标的数值（极易发生指标间数据串台）"
-      ],
-      "note": "注意 pairs() 的 estimate 为'参照 − 处理'，故 处理相对参照的变化 = −estimate；参照组固定取较低水平。"
-    },
-    "extraction_rules": {
-      "anova_p": "从模型固定效应输出中提取（如anova(model)或summary(model)），保留3位小数",
-      "pairwise_p": "从pairs()输出中提取p.value列，保留3位小数",
-      "estimate": "从pairs()输出中提取estimate列（差值），保留2位小数",
-      "percentage": "百分比 = (差值 / 参照组均值) × 100，保留2位小数（如：15.32%）",
-      "参照组选择": "以较低水平（如22℃）为参照组，报告较高水平（如27℃）相对于较低水平的变化",
-      "其他统计量": "F值、χ²值、标准差、均值等均保留2位小数"
-    }
-  },
-  "phase_4_最终检查清单": {
-    "description": "每个指标生成完成后，AI必须逐项检查",
-    "checks": [
-      "统计模型类型是否明确报告（ANOVA/LMM/GLMM）？",
-      "随机因子及其方差组分是否报告（若使用混合模型）？",
-      "三阶交互显著时，是否报告了方向 1 与方向 2（必报），方向 3 是否按推荐补充？",
-      "单个二阶交互显著时，是否进行了双向拆解（固定 A 看 B + 固定 B 看 A）？",
-      "多个二阶交互显著时，是否每个交互都独立进行了双向拆解？",
-      "所有趋势对比是否使用边际均值（EMMs）计算？",
-      "ANOVA 检验的 P 值与两两比较的 P 值是否区分报告？",
-      "交互显著时，是否明确声明涉及的主效应不作独立解释？",
-      "独立主效应是否声明与其他因素的交互均不显著？",
-      "是否避免使用'表明''说明''显示'等讨论式用语？",
-      "P 值是否保留 3 位小数，其他统计量是否保留 2 位小数？",
-      "每个指标的图号是否已标注（或标注'图【待补充】'）？",
-      "风格一致性：标点是否统一为半角？交互符号是否无空格'×'？两两比较是否一律后置'P = …, 两两比较'？",
-      "因子是否全部用中文称谓（无 A/B/C、dev22、bg22、p−、p+ 等代号残留）？",
-      "趋势分析是否以连续段落呈现（无 bullet 列表）？模型声明是否在节首集中、各指标段内未重复？",
-      "小节标题及正文是否不含 C1/C2/C3/C4 内部自查标记？偏 η² 报告口径在全文档是否一致？"
+
+    "cases": [
+      {
+        "case_id": "R1",
+        "name": "Highest-order interaction significant",
+        "condition": "The highest-order interaction term (order = factor_count) has ANOVA P < 0.05. Example for three factors: F1×F2×F3.",
+
+        "statistical_analysis": {
+          "template_algorithm": "⚠️ Report the F/χ², df, and P-value for this highest-order interaction. Report the F/χ², df, and P-value for all main effects individually (regardless of significance; numerical values must be reported). Report the F/χ², df, and P-values for all lower-order interactions (as observed). For mixed models, report random factor variance components.",
+          "note": "A significant highest-order interaction does not imply that main effects are necessarily non-significant; both can be significant simultaneously. Always report based on actual test results."
+        },
+
+        "trend_analysis": {
+          "description": "When an interaction involves k factors, decompose into k directions. For each direction, hold the other k−1 factors fixed and examine the current factor. All directions must be reported.",
+          "direction_algorithm": {
+            "direction1": {
+              "name": "Hold other factors fixed, examine F1",
+              "layer_count": "K_F2 × K_F3 × ...",
+              "calculation": "emmeans(model, ~ F1 | F2 * F3 * ...)",
+              "per_layer_action": "Extract the difference, percentage, and P-value for F1_Level_K vs F1_Level_1; if K_F1 > 2, execute middle_level_supplement_algorithm and peak_detection_rule.",
+              "example_syntax": "Holding [F2 actual label] [F3 actual label] fixed, [F1_Level_K complete label] ([X.XX ± X.XX] [quantifier]) increased/decreased by [X.XX] relative to [F1_Level_1 complete label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value]); [intermediate level supplementation if applicable]. Layers are separated by semicolons."
+            },
+            "direction2": { "name": "Hold other factors fixed, examine F2", "per_layer_action": "Same as direction1, substituting F2 as the subject." },
+            "directionN": "Continue similarly for each factor participating in the interaction."
+          },
+          "interaction_contrast": {
+            "description": "The difference between simple effects (interaction contrast) must be reported to clarify the source of the interaction. When computing, marginalize over all other factors not participating in this interaction.",
+            "calculation": "For each significant interaction: contrast(emmeans(model, ~ F2 | F1), interaction = 'pairwise', adjust = 'tukey')",
+            "example_syntax": "The effect of [factor 1] differed significantly / did not differ significantly across levels of [factor 2] (*P* = [P-value], pairwise comparison)."
+          }
+        },
+
+        "effect_statement": "⚠️ Because the highest-order interaction is significant, no main effects or lower-order interactions shall be interpreted independently. The positions where effects appear/disappear/reverse must be characterized with specific within-layer numerical values; do not merely write 'there exists a complex interdependent relationship'."
+      },
+
+      {
+        "case_id": "R2",
+        "name": "Lower-order interaction significant (highest-order not significant)",
+        "condition": "Highest-order interaction has ANOVA P ≥ 0.05, and at least one lower-order interaction has P < 0.05. Example for three factors: a two-way interaction is significant.",
+
+        "statistical_analysis": {
+          "template_algorithm": "Report that the highest-order interaction is not significant. Report all significant lower-order interaction terms (F/χ², df, P). Report that the remaining lower-order interactions are not significant. Report the F/χ², df, and P-values for all main effects individually (regardless of significance; numerical values must be reported). For mixed models, report random factor variance components."
+        },
+
+        "trend_analysis": {
+          "description": "Each significant lower-order interaction is independently decomposed in both directions. ⚠️ Additionally, if there is a factor that does not participate in any significant interaction and its own main effect is significant, it shall undergo the R3 extreme comparison analysis. If the main effect of a factor not participating in an interaction is not significant, no extreme comparison is performed; it is only mentioned as non-significant in the statistical section.",
+
+          "per_interaction_algorithm": {
+            "interaction_name": "[F1×F2]",
+            "direction1": "Hold F1_i fixed, report F2_Level_K vs F2_Level_1; layers = K_F1; format: 'Holding [F1_i complete label] fixed, [F2_Level_K complete label] ([X.XX ± X.XX]) increased/decreased by [X.XX] relative to [F2_Level_1 complete label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value]); [intermediate supplementation].'",
+            "direction2": "Hold F2_j fixed, report F1_Level_K vs F1_Level_1; layers = K_F2; format same as direction1, substituting factor labels.",
+            "interaction_contrast": {
+              "description": "For each significant interaction, perform simple effect comparisons and report the interaction contrast P-value (Tukey corrected). When computing, marginalize over all other factors not participating in this interaction.",
+              "example_syntax": "The effect of [factor 1] differed significantly / did not differ significantly across levels of [factor 2] (*P* = [P-value], pairwise comparison)."
+            },
+            "note": "Because this interaction is significant, the main effects it involves shall not be interpreted independently."
+          },
+
+          "uninvolved_main_effect_rule": {
+            "description": "For factors that do not participate in any significant interaction and whose main effect is significant, apply the R3 logic: marginalize over all other factors and report the extreme comparison.",
+            "example_syntax": "[F3_Level_K complete label] [response variable] was [X.XX ± X.XX] [quantifier] (marginal mean), increased/decreased by [X.XX] relative to [F3_Level_1 complete label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value]), and the interactions of F3 with F1 and F2, as well as the three-way interaction, were all non-significant (all *P* > 0.05), indicating that the effect of F3 is independent of F1 and F2."
+          },
+
+          "processing_rule": "Apply the above algorithm to each significant lower-order interaction in sequence. If the highest-order interaction is not significant, these interactions do not depend on higher-order factor levels."
+        },
+
+        "effect_statement": "Main effects involved in significant interaction terms shall not be interpreted independently. Factors that do not participate in any significant interaction and whose main effect is significant may be interpreted independently. Main effects that do not participate in any significant interaction and are not significant shall also not be interpreted independently."
+      },
+
+      {
+        "case_id": "R3",
+        "name": "Only main effects significant",
+        "condition": "All interaction terms have ANOVA P ≥ 0.05 (or no interactions exist), and at least one main effect has P < 0.05.",
+
+        "statistical_analysis": {
+          "template_algorithm": "Report the F/χ², df, and P-values for all main effects individually (regardless of significance; numerical values must be reported). State that all interactions are not significant (if interactions exist). For mixed models, report random factor variance components."
+        },
+
+        "trend_analysis": {
+          "description": "⚠️ Perform extreme comparison analysis only for factors with significant main effects. For factors with non-significant main effects, do not perform trend decomposition; only mention them as non-significant in the statistical section. Order by P-value from smallest to largest.",
+
+          "per_effect_algorithm": {
+            "effect": "F1",
+            "comparison": "Report F1_Level_K vs F1_Level_1; if K_F1 > 2, execute intermediate supplementation, plateau check, and peak detection. Format: '[F1_Level_K complete label] [response variable] was [X.XX ± X.XX] [quantifier] (marginal mean), increased/decreased by [X.XX] relative to [F1_Level_1 complete label] ([X.XX ± X.XX]) (+/-[X.XX]%, *P* = [P-value]); [intermediate supplementation].'"
+          }
+        },
+
+        "effect_statement": "Each significant main effect is interpreted independently (all interactions are not significant or do not exist)."
+      },
+
+      {
+        "case_id": "R4",
+        "name": "None significant or model degraded",
+        "statistical_analysis": { "template_algorithm": "Report that the model failed to converge stably or that all tests were non-significant." },
+        "trend_analysis": { "template_algorithm": "Report only observed proportions or descriptive data; do not make statistical inferences." },
+        "effect_statement": "This result is reported descriptively based on observed proportions only, without statistical inference."
+      }
     ]
   },
-  "phase_5_占位符管理": {
-    "description": "生成初稿时，所有未知数据使用占位符标记",
-    "placeholders": [
-      "【响应变量名称】",
-      "【模型类型】",
-      "【F值】",
-      "【χ²值】",
-      "【P值】",
-      "【df1,df2】",
-      "【df】",
-      "【P值_两两比较】",
-      "【X.XX】",
-      "【单位】",
-      "【升高/降低】",
-      "【图号】",
-      "【随机因子名称】"
-    ],
-    "post_processing": "用户填入实际数据后，AI应替换所有占位符并核对统计量一致性"
-  },
-  "quick_reference": {
-    "format_rules": {
-      "P值": "保留3位小数，如 P = 0.023, P < 0.001",
-      "F值": "保留2位小数，如 F₁,₂₃₈ = 48.55",
-      "χ²值": "保留2位小数，如 χ²(₁) = 6.60",
-      "自由度": "整数，如 df = 1, 238",
-      "均值/差值": "保留2位小数，如 0.57 mm², 1.43 mg",
-      "百分比": "保留2位小数，如 +4.00%, -21.90%",
-      "标准差/标准误": "保留2位小数，如 24.41 ± 1.07"
+
+  "phase_3_computation_instructions": {
+    "r_code_template": {
+      "fit_lm_typeIII": "library(car); options(contrasts = c('contr.sum', 'contr.poly')); model <- lm(response ~ F1 * F2 * F3, data = dat); Anova(model, type = 3)",
+      "fit_lmm": "model <- lmer(response ~ F1 * F2 * F3 + (1|block), data = dat)",
+      "fit_glmm": "model <- glmer(response ~ F1 * F2 * F3 + (1|block), family = binomial, data = dat)",
+      "emm_high_order_dir1": "emm <- emmeans(model, ~ F1 | F2 * F3, type = 'response'); pairs(emm, adjust = 'tukey')",
+      "emm_2way_dir1": "emm <- emmeans(model, ~ F2 | F1, type = 'response'); pairs(emm, adjust = 'tukey')",
+      "emm_main": "emm <- emmeans(model, ~ F1, type = 'response'); pairs(emm, adjust = 'tukey')",
+
+      "emm_glmm_extract_means": "⚠️ GLMM difference extraction: Because pairs(type='response') returns ratios in the estimate column, it is prohibited to extract directly. Execute: emm_resp <- emmeans(model, ~ F1 | F2 * F3, type = 'response'); emm_df <- as.data.frame(emm_resp); extract the emm_df$response column as means, and manually compute differences (treatment group mean - reference group mean).",
+
+      "interaction_contrast": "emm <- emmeans(model, ~ F2 | F1, type = 'response'); contrast(emm, interaction = 'pairwise', adjust = 'tukey')"
     },
-    "case_summary": {
-      "C1_三阶交互显著": "3种方向，每种4组对比，共12组",
-      "C2_single_单个二阶交互": "双向拆解，共4组对比",
-      "C2_single_with_independent_二阶交互加独立主效应": "交互双向拆解（4组）+ 独立主效应（1组），共5组",
-      "C2_complex_多个二阶交互": "每个交互独立双向拆解，各4组",
-      "C3_仅主效应显著": "每个显著主效应1组对比",
-      "C4_全不显著或退化": "仅描述性报告，0组对比"
+
+    "disassembly_discipline": {
+      "description": "⚠️ Decomposition specification discipline (most error-prone). Incorrect specifications will cause the number of comparison groups, marginal means, and P-values to deviate from the algorithm requirements.",
+      "table": [
+        { "case": "R1 highest-order interaction significant", "correct_spec": "Retain all factor stratification, e.g., ~ F1 | F2 * F3", "common_error": "❌ Incorrectly using marginalized specification" },
+        { "case": "R2 lower-order interaction significant", "correct_spec": "Marginalize higher-order factors not participating in this interaction, e.g., ~ F1 | F2", "common_error": "❌ Continuing to use the fine decomposition from highest-order interaction" },
+        { "case": "R3 main effects only", "correct_spec": "~ F1, marginalizing all other factors", "common_error": "❌ Performing any stratified decomposition" }
+      ]
+    },
+
+    "pre_write_steps": {
+      "must_do": "Before writing the text, use a script or manual calculation to prepare a lookup table containing 'reference group mean / treatment group mean / difference / SE / percentage / pairwise P-value' for each comparison, then write from the table.",
+      "prohibited": ["Back-calculating differences or percentages from already rounded values in the text", "Summarizing ranges of multiple groups by impression (prone to missing extreme groups)", "Carrying over numerical values from the previous indicator when copying sentence structures across indicators"]
+    },
+
+    "extraction_rules": {
+      "anova_p": "Extract from the model fixed-effects output, report to 3 decimal places.",
+      "pairwise_p": "Extract the p.value column from the pairs() or contrast() output, report to 3 decimal places.",
+
+      "estimate": "⚠️ For LMM/ANOVA, extract the estimate column from pairs() directly as the absolute difference. For GLMM, extract response means via as.data.frame(emmeans(...)) and manually compute differences; prohibit direct extraction from pairs() estimate.",
+
+      "standard_error": "⚠️ Extract the SE column from as.data.frame(emmeans(...)) output, report to 2 decimal places. Combine with the mean as 'mean ± SE'. Prohibit using raw data SD as a substitute for model SE.",
+
+      "percentage": "Percentage = (difference / reference group mean) × 100, report to 2 decimal places.",
+
+      "response_scale_and_unit_rule": "GLMM (binomial): report means as 'X.XX ± X.XX probability', differences as probability differences; GLMM (Poisson/NB): report means as 'X.XX ± X.XX times/individuals', differences as count differences; LMM/ANOVA: report means as 'X.XX ± X.XX mg' etc. with physical units.",
+
+      "reference_level_selection": "Use the lowest level (Level_1) as the reference group; report the change of the highest level (Level_K) relative to Level_1. For unordered categorical factors, the reference is user-specified.",
+
+      "anova_type_note": "The Type (I/II/III) of sums of squares used must be stated in the report. For unbalanced designs, Type III is recommended (with contr.sum set)."
     }
   },
+
+  "phase_4_final_checklist": {
+    "checks": [
+      "Was phase_0 level mapping preprocessing performed?",
+      "⚠️ In R1/R2/R3, were all main effects' F/χ² and P-values reported in the statistical section (regardless of significance)?",
+      "Were the decomposition directions complete for R1/R2? Were layer counts dynamically computed?",
+      "Were EMMs calculations and P-value distinctions correct (ANOVA P vs pairwise comparison P properly labeled)?",
+      "For multi-level factors, was the plateau check (Level_K vs Level_{K-1}) performed?",
+      "⚠️ For multi-level factors, when the two ends showed no significant difference, was peak_detection_rule triggered to report the intermediate extreme? When triggered, was only the peak reported, with remaining intermediate levels summarized as 'did not reach significant difference'?",
+      "Were quantifiers correctly adapted (LMM with physical units, GLMM binomial with 'probability', Poisson with 'times/individuals')?",
+      "⚠️ For GLMM, was extraction from pairs() estimate avoided, and was the absolute difference manually computed from response-scale means?",
+      "⚠️ Were all means in parentheses reported as EMMs ± SE?",
+      "⚠️ In the R2 branch, for main effects not participating in significant interactions: if significant, were they independently decomposed? If not significant, were they only mentioned in the statistical section?",
+      "When interactions were significant, was it stated that main effects are not interpreted independently? Was the interaction contrast reported?",
+      "Were discursive language terms avoided? Were numerical precision and punctuation fully compliant?",
+      "Were all factor labels in the 'factor name + specific level value' format, without residual relative terms such as 'high temperature' or 'control'?",
+      "Was the ANOVA type of sums of squares stated? Were the signs/directions from pairs() checked?"
+    ]
+  },
+
+  "phase_5_placeholder_management": {
+    "placeholders": [
+      "[response variable name]",
+      "[model type]",
+      "[F-value]",
+      "[P-value]",
+      "[X.XX ± X.XX]",
+      "[quantifier]",
+      "[figure number]",
+      "[Level_i complete label]"
+    ],
+    "note": "[X.XX ± X.XX] represents the estimated marginal mean and its standard error. [quantifier] must be dynamically filled according to model type: physical unit (mg, mm²) / probability / times/individuals. All Level-containing placeholders should be filled with the complete format '[factor Chinese name] + [specific level value/name]'.",
+    "post_processing": "After the user provides actual data, the AI shall replace all placeholders and verify the consistency of statistical values."
+  },
+
+  "quick_reference": {
+    "format_rules": {
+      "P-value": "Report to 3 decimal places, e.g., P = 0.023, P < 0.001",
+      "F-value": "Report to 2 decimal places, e.g., F₁,₂₃₈ = 48.55",
+      "Mean/Difference": "Report to 2 decimal places, e.g., 0.57 mm², 1.43 mg",
+      "SE": "Report to 2 decimal places, combined as 24.41 ± 1.07",
+      "Percentage": "Report to 2 decimal places, e.g., +4.00%, -21.90%"
+    },
+    "case_summary": {
+      "R1_highest_order_interaction_significant": "Decompose in k directions; layer count = product of remaining factor levels; report interaction contrast; all main effects not interpreted independently",
+      "R2_lower_order_interaction_significant": "Each significant interaction: bidirectional decomposition with interaction contrast; significant main effects not participating in interactions undergo independent extreme comparison; non-significant main effects only mentioned in statistics",
+      "R3_main_effects_only": "Only significant main effects undergo extreme comparison (+ intermediate supplementation + plateau check + peak detection); non-significant main effects are not decomposed",
+      "R4_none_significant_or_degraded": "Descriptive reporting only, 0 comparisons"
+    },
+    "factor_count_examples": {
+      "Single factor (1 factor)": "No interaction terms, go directly to R3. Only report extreme comparison + intermediate supplementation + plateau check + peak detection for significant main effects.",
+      "Two factors (2 factors)": "Only interaction is F1×F2. If significant, enter R1 for bidirectional decomposition; if not significant, enter R3.",
+      "Three factors (3 factors)": "Three-way significant → R1; only two-way significant → R2; only main effects → R3."
+    }
+  },
+
   "style_example": {
-    "description": "风格示例（C3 仅主效应，统一段落 + 后置两两比较 + 中文称谓）",
-    "text": "三因素线性模型中，若虫体面积受发育温度（F₁,₄₄₅ = 48.55, P < 0.001）与背景温度（F₁,₄₄₅ = 12.30, P = 0.001）主效应的显著影响，农药背景主效应不显著（F₁,₄₄₅ = 0.84, P = 0.360），所有交互项均不显著（所有 P > 0.05）。27 ℃ 发育个体若虫体面积为 0.62 mm²（边际均值），较 22 ℃ 发育（0.38 mm²）升高 0.24 mm²（+63.16%, P < 0.001, 两两比较）；暖背景个体为 0.49 mm²，较冷背景（0.51 mm²）降低 0.02 mm²（−3.92%, P = 0.210, 两两比较）。各主效应可独立解释（所有交互均不显著）。"
+    "description": "Style example (multi-level R3 with only main effects, demonstrating EMMs±SE reporting, quantifier adaptation, and non-monotonic peak emphasis).",
+    "text": "In a single-factor generalized linear mixed model (Poisson distribution), the number of reproductive events was significantly affected by the main effect of temperature (*χ*²(₃) = 15.20, *P* = 0.002). At temperature 30 ℃, the number of reproductive events was 4.50 ± 0.30 (marginal mean), which did not differ significantly from temperature 15 ℃ (4.20 ± 0.25) (*P* = 0.85, pairwise comparison); however, at temperature 25 ℃ (8.20 ± 0.40), the number increased by 4.00 relative to temperature 15 ℃ (+95.24%, *P* < 0.001, pairwise comparison), and increased by 3.70 relative to temperature 30 ℃ (+82.22%, *P* < 0.001, pairwise comparison). Overall, this exhibited an initial increase followed by a decrease, i.e., a unimodal pattern. This main effect can be interpreted independently."
   }
 }
