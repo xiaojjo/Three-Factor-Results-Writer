@@ -8,36 +8,26 @@
 
 写三因素析因试验的 Results 段落时，常见痛点：三阶交互怎么拆方向、两两比较 P 和 ANOVA P 混淆、百分比口径不统一、统计符号格式混乱、写完 Markdown 还要手动排版 Word。本技能用一套决策树 + 风格规范 + 零依赖转换器一次性解决。
 
-## 安装
-
-### 方式一：克隆到 WorkBuddy 技能目录（推荐）
+## 获取
 
 ```bash
-git clone https://github.com/xiaojjo/Three-Factor-Results-Writer.git ~/.workbuddy/skills/three-factor-results-writer
+git clone https://github.com/xiaojjo/Three-Factor-Results-Writer.git
 ```
 
-克隆后重启 WorkBuddy，技能自动加载。
+或从 [Releases](https://github.com/xiaojjo/Three-Factor-Results-Writer/releases) 下载压缩包。
 
-### 方式二：手动下载
+## 使用方式
 
-1. 从 [Releases](https://github.com/xiaojjo/Three-Factor-Results-Writer/releases) 下载压缩包
-2. 解压到 `~/.workbuddy/skills/three-factor-results-writer/`
-3. 确保目录结构如下（`SKILL.md` 在根目录）：
+本项目是一套写作决策树和风格规范，核心文件是 `SKILL.md` 和 `references/decision_tree.json`，可灵活用于多种场景：
 
-```
-~/.workbuddy/skills/three-factor-results-writer/
-├── SKILL.md
-├── references/
-│   └── decision_tree.json
-└── scripts/
-    └── md2docx.py
-```
+- **作为 AI 技能**：放入你所用 AI 平台的技能目录（如 WorkBuddy 的 `~/.workbuddy/skills/`），AI 会自动读取决策树并按规范写作
+- **作为写作参考**：直接阅读 `SKILL.md` 和 `decision_tree.json`，按其中的六类情形模板和检查清单手动写作
+- **单独使用转换器**：`scripts/md2docx.py` 可独立使用，把任意 Markdown 转为期刊排版的 Word
 
 ### 环境要求
 
-- [WorkBuddy](https://www.workbuddy.cn) 智能体平台
-- Python 3.8+（仅 `md2docx.py` 需要，技能本身不需要）
-- R + `emmeans` 包（计算边际均值时需要，技能本身不需要）
+- Python 3.8+（仅 `md2docx.py` 需要）
+- R + `emmeans` 包（计算边际均值时需要，非必须）
 
 ## 适用范围
 
@@ -76,6 +66,25 @@ three-factor-results-writer/
 | C2_complex 多个二阶交互 | ≥2 个二阶交互 P < 0.05 | 每交互 4 |
 | C3 仅主效应 | 所有交互不显著，≥1 主效应显著 | 每主效应 1 |
 | C4 全不显著 | 全部 P ≥ 0.05 或模型不收敛 | 0 |
+
+## 决策树
+
+每个指标根据显著性检验结果路由到对应情形：
+
+```mermaid
+flowchart TD
+    START[单指标] --> Q1{A×B×C 交互 P < 0.05?}
+    Q1 -->|是| C1[C1 三阶交互显著\n3方向×4组 = 12组对比]
+    Q1 -->|否| Q2{≥2个二阶交互 P < 0.05?}
+    Q2 -->|是| C2C[C2_complex 多个二阶交互\n每交互独立双向拆解]
+    Q2 -->|否| Q3{仅1个二阶交互 P < 0.05?}
+    Q3 -->|是| Q4{该交互外有\n独立主效应 P < 0.05?}
+    Q4 -->|是| C2I[C2_single_with_independent\n交互4组 + 主效应1组 = 5组]
+    Q4 -->|否| C2S[C2_single 单个二阶交互\n双向拆解 4组]
+    Q3 -->|否| Q5{≥1个主效应 P < 0.05?}
+    Q5 -->|是| C3[C3 仅主效应\n每主效应 1组]
+    Q5 -->|否| C4[C4 全不显著\n仅描述性报告]
+```
 
 核心纪律：交互显著时，涉及的主效应不作独立解释。
 
