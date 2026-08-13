@@ -283,9 +283,8 @@ contrast(emm, interaction = 'pairwise', adjust = 'tukey')
 - [ ] Does the ANOVA note the sum-of-squares type? Is the pairs() sign direction verified?
 
 ---
-<div align="center">
 ## IX. Style Example
-
+<div align="justify">
 >**Second instar duration (developmental temperature × background temperature two-way interaction significant; pesticide background main effect significant)**
 >
 >In the Type III test of the three-factor linear model, the three-way interaction was not significant (*F*₂,₄₄₅ = [F-value], *P* = [P-value]), only the developmental temperature × background temperature two-way interaction was significant (*F*₂,₄₄₅ = [F-value], *P* = [P-value]), while developmental temperature × pesticide background (*F*₂,₄₄₅ = [F-value], *P* = [P-value]) and background temperature × pesticide background (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) were not significant; the main effects of developmental temperature (*F*₂,₄₄₅ = [F-value], *P* = [P-value]) and background temperature (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) were not significant, but the main effect of pesticide background was significant (*F*₁,₄₄₅ = [F-value], *P* = [P-value]) (Figure [figure number]).
