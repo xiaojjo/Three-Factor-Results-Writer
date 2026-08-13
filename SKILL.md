@@ -1,4 +1,3 @@
-<h1 align="center">TriFact-Scribe</h1>
 ---
 name: multi-factor-results-writer
 description: Use when the user needs to generate, indicator by indicator, results-paragraph text conforming to canonical ecology-journal standards from the statistical output of a multi-factor complete factorial experiment (any number of factors, any number of levels per factor). Covers main effects and interaction effects of ANOVA / LMM / GLMM models under complete factorial design, written in the "statistics-first, then trend" mode, including indicator ordering, routing algorithms (R1–R4) for highest-order / second-highest-order / independent main-effect scenarios, mandatory reporting of estimated marginal means (EMMs) ± SE, multi-level extreme-contrast and intermediate-level supplementation, non-monotonic trend peak detection, GLMM response-scale difference extraction, interaction contrasts, and a final-draft checklist. Not applicable to nested designs, split-plot designs, models with continuous-factor variables, or models with covariates.
@@ -284,7 +283,7 @@ contrast(emm, interaction = 'pairwise', adjust = 'tukey')
 - [ ] Does the ANOVA note the sum-of-squares type? Is the pairs() sign direction verified?
 
 ---
-
+<div align="center">
 ## IX. Style Example
 
 >**Second instar duration (developmental temperature × background temperature two-way interaction significant; pesticide background main effect significant)**
@@ -298,6 +297,7 @@ contrast(emm, interaction = 'pairwise', adjust = 'tukey')
 >Direction 3 (marginalizing over developmental temperature and background temperature, comparing pesticide background; with pesticide vs without pesticide): The with-pesticide group had a second instar duration of [X.XX ± X.XX] d (marginal mean), which increased/decreased by [X.XX] relative to the without-pesticide group ([X.XX ± X.XX] d) (+/-[X.XX]%, *P* = [P-value], pairwise comparison).
 >
 >The developmental temperature × background temperature interaction contrast indicated that the effect of developmental temperature differed significantly between background temperature 15 ℃ and 25 ℃ (*P* = [P-value], pairwise comparison). Because the developmental temperature × background temperature two-way interaction was significant, the main effects of developmental temperature and background temperature were not interpreted independently; because pesticide background did not participate in any significant interaction and its main effect was significant, its effect was independent of developmental temperature and background temperature and could be interpreted independently.
+</div>
 ---
 
 ## X. Attached Scripts
