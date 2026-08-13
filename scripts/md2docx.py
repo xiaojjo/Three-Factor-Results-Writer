@@ -7,12 +7,6 @@ md2docx.py — 零依赖 Markdown → Word(.docx) 转换器
 
     不写输出路径时，自动生成与输入同名的 .docx（如 论文.md -> 论文.docx）。
 
-设计目标——跨机器可移植：
-    本脚本【仅依赖 Python 3 标准库】（zipfile + xml），不依赖 python-docx、
-    markdown 等第三方包，也无需联网 pip 安装。因此只要目标机器上能找到
-    任意一个 Python 3 解释器（系统 python / python3，或 WorkBuddy 托管 Python），
-    即可直接运行，不受具体安装路径、虚拟环境、是否预装库的限制。
-
 支持的 Markdown：
     标题(# ~ ######)、段落、**粗体**、*斜体*、`行内代码`、代码块(```)、
     有序/无序列表、表格(管道语法)、引用(>)、分隔线(---)。
