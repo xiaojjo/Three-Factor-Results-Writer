@@ -4,7 +4,6 @@
 [![Version](https://img.shields.io/badge/version-v0.0.3-blue)](https://github.com/xiaojjo/multi-factor-results-writer/releases)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-orange)]()
 [![R + emmeans](https://img.shields.io/badge/R-emmeans-1s4e70)]()
-[![Cross-platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
 [![Status: Active](https://img.shields.io/badge/status-active-brightgreen)]()
 
 > 多因素完全析因试验（任意因素数量、任意水平数）结果段落写作决策树，把统计输出逐指标写成符合生态学期刊规范的结果段落，并一键导出 Word。
